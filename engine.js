@@ -1,6 +1,7 @@
 /**
- * OutcomeLogic™ Universal Engine
+ * OutcomeLogic™ Universal Engine v1.2
  * Proprietary Logic: Rahman Medical Services Limited
+ * Features: Dynamic Sidebar, Multivariate Risk Modeling, Chart.js Integration
  */
 
 let currentChart = null;
@@ -8,6 +9,7 @@ let currentChart = null;
 // 1. Build the Sidebar automatically from TRIAL_DATA
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
     nav.innerHTML = ''; 
 
     const categories = [...new Set(Object.values(TRIAL_DATA).map(t => t.category))];
@@ -31,131 +33,145 @@ function initializeSidebar() {
     });
 }
 
-// 2. Load Widget with Subgroup Interactivity
+// 2. Load Widget (Handles both Static Evidence and Multivariate Calculators)
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
     
-    // UI: Active Button State
+    // UI Update: Active Button State
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(event) event.target.classList.add('active');
 
-    // Build Subgroup Dropdown (Only if more than 1 subgroup exists)
-    let subgroupHTML = '';
-    const keys = Object.keys(trial.subgroups);
-    if (keys.length > 1) {
-        subgroupHTML = `
-            <div style="margin-bottom: 25px;">
-                <label style="font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:8px;">Subgroup Filter</label>
-                <select id="subgroup-picker" onchange="updateView('${type}', this.value)" 
-                        style="width:100%; padding:12px; border-radius:10px; border:1px solid #e2e8f0; font-family:inherit; font-weight:600; background:#fff; cursor:pointer;">
-                    ${keys.map(k => `<option value="${k}">${trial.subgroups[k].label}</option>`).join('')}
-                </select>
+    if (trial.type === "calculated") {
+        // --- MULTIVARIATE CALCULATOR VIEW (RELAPSTONE STYLE) ---
+        mount.innerHTML = `
+            <div class="widget-container">
+                <div class="header-flex">
+                    <h2 style="margin:0;">${trial.title}</h2>
+                    <span class="source-tag">${trial.source}</span>
+                </div>
+                <p class="subtitle">${trial.subtitle}</p>
+                
+                <div class="grid">
+                    <div class="ee-sidebar" style="background:#f1f5f9; padding:20px; border-radius:12px;">
+                        <label class="nav-label" style="color:#64748b;">Age Cohort</label>
+                        <select id="calc-age" class="ee-select" onchange="runCalculation('${type}')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                            <option value="1.0">54 or younger</option>
+                            <option value="0.57">Over 54</option>
+                        </select>
+
+                        <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; font-size:14px; margin-bottom:10px; cursor:pointer;">
+                            <input type="checkbox" id="calc-mult" onchange="runCalculation('${type}')"> Multiple stones?
+                        </label>
+                        <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; font-size:14px; margin-bottom:10px; cursor:pointer;">
+                            <input type="checkbox" id="calc-alt" onchange="runCalculation('${type}')"> ALT > 35 U/L
+                        </label>
+                        <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; font-size:14px; margin-bottom:15px; cursor:pointer;">
+                            <input type="checkbox" id="calc-wcc" onchange="runCalculation('${type}')"> WCC > 11
+                        </label>
+
+                        <div class="evidence-card" style="background:var(--primary); color:white; text-align:center;">
+                            <div id="calc-result" style="font-size:2.2rem; font-weight:800; color:#6facd5;">63.0%</div>
+                            <div style="font-size:0.7rem; text-transform:uppercase; opacity:0.8;">Symptom-Free at 12m</div>
+                        </div>
+                        
+                        <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center;" onclick="window.print()">Download Summary</button>
+                    </div>
+                    
+                    <div class="chart-box"><canvas id="mainChart"></canvas></div>
+                </div>
+                <div class="governance-box">${trial.footer_note}</div>
             </div>
         `;
-    }
+        runCalculation(type);
 
-    // Build the Main UI Structure
-    mount.innerHTML = `
-        <div class="widget-container">
-            <div class="header-flex">
-                <h2 style="margin:0; font-weight:800;">${trial.title}</h2>
-                <span class="source-tag">${trial.source}</span>
-            </div>
-            <p class="subtitle">${trial.subtitle}</p>
-            
-            <div class="grid">
-                <div>
-                    ${subgroupHTML}
-                    <div class="evidence-card">
-                        <div id="stat-m1" class="stat-main">${trial.metrics.m1_value}</div>
-                        <div class="stat-label">${trial.metrics.m1_label}</div>
-                        
-                        <div id="stat-m2" class="stat-main muted">${trial.metrics.m2_value}</div>
-                        <div class="stat-label">${trial.metrics.m2_label}</div>
-                        
-                        <div class="secondary-info" id="secondary-display">
-                            <strong>Trial Metrics:</strong><br>
-                            ${trial.metrics.secondary}<br>
-                            <span id="stat-hr" style="color:var(--accent); font-weight:700;">HR: ${trial.subgroups.all.hr || 'N/A'}</span>
+    } else {
+        // --- STANDARD STATIC EVIDENCE VIEW (ESOPEC / VIALE STYLE) ---
+        let subgroupHTML = '';
+        const keys = Object.keys(trial.subgroups || {});
+        if (keys.length > 1) {
+            subgroupHTML = `
+                <div style="margin-bottom: 20px;">
+                    <label class="nav-label">Filter Subgroup</label>
+                    <select id="subgroup-picker" onchange="updateStaticView('${type}', this.value)" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; font-weight:600;">
+                        ${keys.map(k => `<option value="${k}">${trial.subgroups[k].label}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+
+        mount.innerHTML = `
+            <div class="widget-container">
+                <div class="header-flex">
+                    <h2 style="margin:0;">${trial.title}</h2>
+                    <span class="source-tag">${trial.source}</span>
+                </div>
+                <p class="subtitle">${trial.subtitle}</p>
+                <div class="grid">
+                    <div>
+                        ${subgroupHTML}
+                        <div class="evidence-card">
+                            <div class="stat-main">${trial.metrics.m1_value}</div>
+                            <div class="stat-label">${trial.metrics.m1_label}</div>
+                            <div class="stat-main muted">${trial.metrics.m2_value}</div>
+                            <div class="stat-label">${trial.metrics.m2_label}</div>
+                            <div class="secondary-info">${trial.metrics.secondary}</div>
                         </div>
                     </div>
+                    <div class="chart-box"><canvas id="mainChart"></canvas></div>
                 </div>
-                <div class="chart-box">
-                    <canvas id="mainChart"></canvas>
-                </div>
+                <div class="governance-box">${trial.footer_note}</div>
             </div>
-            <div class="governance-box">
-                <strong>Clinical Note:</strong> ${trial.footer_note}
-            </div>
-        </div>
-    `;
-
-    // Initial Render (Always start with 'all' subgroup)
-    updateView(type, 'all');
+        `;
+        updateStaticView(type, 'all');
+    }
 }
 
-// 3. Update Chart & Stats when Subgroup changes
-function updateView(trialKey, subgroupKey) {
+// 3. Mathematical Engine for Calculated Models (Power Law)
+function runCalculation(type) {
+    const trial = TRIAL_DATA[type];
+    const ageHR = parseFloat(document.getElementById('calc-age').value);
+    const multHR = document.getElementById('calc-mult').checked ? 1.19 : 1.0;
+    const altHR = document.getElementById('calc-alt').checked ? 1.22 : 1.0;
+    const wccHR = document.getElementById('calc-wcc').checked ? 0.79 : 1.0;
+
+    const totalHR = ageHR * multHR * altHR * wccHR;
+    
+    // Applying Hazard Ratio logic: S(t) = S_base(t) ^ HR
+    const adjSurv = trial.baseline.map(s => Math.pow(s, totalHR) * 100);
+    const finalVal = adjSurv[12].toFixed(1);
+
+    document.getElementById('calc-result').innerText = finalVal + "%";
+    renderChart('mainChart', adjSurv, trial.baseline.map(s => s * 100), trial.color, trial.yAxisLabel);
+}
+
+// 4. Update Static Evidence View
+function updateStaticView(trialKey, subgroupKey) {
     const trial = TRIAL_DATA[trialKey];
     const sub = trial.subgroups[subgroupKey];
-    
-    // Update HR/P-Value if it changes by subgroup
-    if(sub.hr) document.getElementById('stat-hr').innerText = `HR: ${sub.hr}`;
-    
-    // Re-draw the Chart
-    renderChart('mainChart', sub, trial.color, trial.yAxisLabel || 'Probability (%)');
+    renderChart('mainChart', sub.intervention, sub.control, trial.color, trial.yAxisLabel || 'Probability (%)');
 }
 
-// 4. Chart.js Implementation
-function renderChart(id, sub, color, yLabel) {
+// 5. Unified Charting Core
+function renderChart(id, primaryData, secondaryData, color, yLabel) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
     
     currentChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Baseline', '1yr', '2yr', '3yr', '4yr', '5yr'].slice(0, sub.intervention.length),
+            labels: primaryData.map((_, i) => i === 0 ? 'Baseline' : (i + 'm')),
             datasets: [
-                { 
-                    label: 'Intervention Arm', 
-                    data: sub.intervention, 
-                    borderColor: color, 
-                    borderWidth: 4, 
-                    fill: false, 
-                    tension: 0.15,
-                    pointRadius: 4,
-                    pointBackgroundColor: color
-                },
-                { 
-                    label: 'Control Arm', 
-                    data: sub.control, 
-                    borderColor: '#cbd5e1', 
-                    borderWidth: 2, 
-                    borderDash: [6, 4], 
-                    fill: false, 
-                    tension: 0.15,
-                    pointRadius: 0
-                }
+                { label: 'Selected Scenario', data: primaryData, borderColor: color, borderWidth: 4, fill: false, tension: 0.3 },
+                { label: 'Study Average/Control', data: secondaryData, borderColor: '#cbd5e1', borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.3 }
             ]
         },
         options: { 
             maintainAspectRatio: false,
-            plugins: { 
-                legend: { position: 'bottom', labels: { boxWidth: 20, font: { weight: '600' } } },
-                tooltip: { backgroundColor: '#0f172a', padding: 12 }
-            },
-            scales: { 
-                y: { 
-                    beginAtZero: false, 
-                    grid: { color: '#f1f5f9' },
-                    title: { display: true, text: yLabel, font: { weight: '700' } } 
-                },
-                x: { grid: { display: false } }
-            }
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { min: 0, max: 100, title: { display: true, text: yLabel } } }
         }
     });
 }
 
-// Global Initialise
 window.onload = initializeSidebar;
