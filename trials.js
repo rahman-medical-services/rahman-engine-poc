@@ -169,5 +169,50 @@ const TRIAL_DATA = {
             </div>
         `,
         footer_note: "Clinical synthesis of patient-reported metrics via the Duke Activity Status Index (DASI). (c) 2026 Rahman Medical Services."
+    },
+    recovery: {
+        category: "Peri-operative",
+        type: "calculated",
+        shortName: "Recovery Passport",
+        title: "Predictive Recovery Passport",
+        subtitle: "Procedure-Specific ERAS Trajectories",
+        source: "ERAS Society Outcomes Database",
+        color: "#10b981", 
+        xAxisLabels: ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 28', '6 Weeks'],
+        
+        // The Engine will pick one of these baselines based on the dropdown
+        baselines: {
+            lap_minor: [5, 20, 60, 85, 95, 100, 100],  // e.g., Hernia, Lap Chole
+            lap_major: [0, 10, 30, 60, 80, 90, 95],    // e.g., Fundoplication, Sleeve
+            open_major: [0, 0, 10, 25, 45, 60, 80]     // e.g., Open Esophagectomy / Bowel
+        },
+
+        controlsHTML: `
+            <label class="nav-label">Procedure Conducted</label>
+            <select id="rec-surgery" class="ee-select" onchange="runCalculation('recovery')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-weight:bold; color:var(--brand-navy);">
+                <option value="lap_minor">Lap Cholecystectomy / Hernia</option>
+                <option value="lap_major">Lap Fundoplication / Bariatric</option>
+                <option value="open_major">Major Open (Esophagectomy/Resection)</option>
+            </select>
+
+            <label class="nav-label">Occupational / Daily Load</label>
+            <select id="rec-job" class="ee-select" onchange="runCalculation('recovery')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="1.0">Desk / Sedentary</option>
+                <option value="0.7">Light Manual</option>
+                <option value="0.4">Heavy Manual Labor</option>
+            </select>
+            
+            <label class="nav-label">Pre-op Fitness (From Readiness)</label>
+            <select id="rec-fit" class="ee-select" onchange="runCalculation('recovery')" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="1.1">High (METs > 4)</option>
+                <option value="0.8">Low (METs < 4) / Frail</option>
+            </select>
+
+            <div style="margin-top:20px; padding:15px; background:white; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
+                <div id="rec-milestone" style="font-size:1.8rem; font-weight:800; color:#10b981;">Day 14</div>
+                <div class="stat-label">Est. 50% Functional Recovery</div>
+            </div>
+        `,
+        footer_note: "Predictive model indexing ERAS protocol baselines against occupational load and pre-operative functional reserve."
     }
 };
