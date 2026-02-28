@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rahman Clinical Intelligence | Demo Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #142b45; --accent: #3498db; --bg: #f4f7f9; }
+        body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: var(--bg); color: #333; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Navigation */
+        #sidebar { width: 280px; background: var(--primary); color: white; padding: 20px; display: flex; flex-direction: column; }
+        .logo { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .nav-group { margin-bottom: 20px; }
+        .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #8bb8e1; margin-bottom: 10px; display: block; }
+        .nav-btn { background: none; border: none; color: #ccc; width: 100%; text-align: left; padding: 10px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-size: 0.9rem; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-btn.active { background: var(--accent); color: white; font-weight: bold; }
+
+        /* Main Content Area */
+        #main-stage { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
+        .widget-container { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 30px; margin-bottom: 20px; }
+        
+        /* Governance Footer */
+        #footer { margin-top: auto; padding: 20px; background: #eaeff2; border-radius: 8px; font-size: 0.75rem; color: #666; line-height: 1.4; border-left: 4px solid #bdc3c7; }
+        
+        /* Utility Classes */
+        .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .evidence-card { background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+<nav id="sidebar">
+    <div class="logo">Rahman Engine v1.0</div>
+    
+    <div class="nav-group">
+        <span class="nav-label">General Surgery</span>
+        <button class="nav-btn active" onclick="loadWidget('relapstone')">Gallstones (RELAPSTONE)</button>
+        <button class="nav-btn" onclick="loadWidget('inca')">Inguinal Hernia (INCA)</button>
+        <button class="nav-btn" onclick="loadWidget('coda')">Appendicitis (CODA)</button>
+    </div>
+
+    <div class="nav-group">
+        <span class="nav-label">Upper GI & Oncology</span>
+        <button class="nav-btn" onclick="loadWidget('esopec')">Esophageal (ESOPEC)</button>
+        <button class="nav-btn" onclick="loadWidget('reflux')">Fundoplication (REFLUX)</button>
+        <button class="nav-btn" onclick="loadWidget('viale')">AML (VIALE-A)</button>
+    </div>
+
+    <div class="nav-group">
+        <span class="nav-label">Orthopaedics & Specialities</span>
+        <button class="nav-btn" onclick="loadWidget('topkat')">Knee (TOPKAT)</button>
+        <button class="nav-btn" onclick="loadWidget('protect')">Prostate (ProtecT)</button>
+    </div>
+</nav>
+
+<main id="main-stage">
+    <div id="content-mount">
+        <div class="widget-container">
+            <h1 id="widget-title">Select a Pathway</h1>
+            <p id="widget-desc">Choose a specialty from the sidebar to view the interactive evidence model.</p>
+        </div>
+    </div>
+
+    <footer id="footer">
+        <strong>Clinical Governance & Information Governance (IG) Statement:</strong><br>
+        This portal is a <em>Clinical Decision Support Aid</em>. It displays population-level data from peer-reviewed clinical trials. 
+        It does not calculate individualised prognostic scores or provide automated diagnoses. 
+        <strong>Zero-PHI Policy:</strong> This application is 100% client-side; no patient-identifiable information (PII) or protected health information (PHI) is transmitted or stored.
+        Standard: Montgomery-compliant shared decision making.
+    </footer>
+</main>
+
+<script>
+    // Simplified Logic to switch between your 13 widgets
+    function loadWidget(type) {
+        const mount = document.getElementById('content-mount');
+        const buttons = document.querySelectorAll('.nav-btn');
+        buttons.forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Logic to update the UI based on the widget type
+        // In the full version, we insert the HTML/JS for each of the 13 modules here
+        if(type === 'relapstone') {
+            mount.innerHTML = `
+                <div class="widget-container">
+                    <h2>Gallstones: Observation vs. Surgery (RELAPSTONE)</h2>
+                    <div class="grid">
+                        <div class="evidence-card">
+                            <label><strong>Baseline Pain Frequency</strong></label><br>
+                            <input type="range" style="width:100%">
+                            <p style="font-size:12px; color:#666; margin-top:20px;">
+                                Based on the <strong>Lancet (2023)</strong> data, surgery provides a significant reduction in pain-related episodes compared to conservative management.
+                            </p>
+                        </div>
+                        <div style="height:300px;"><canvas id="demoChart"></canvas></div>
+                    </div>
+                </div>`;
+            renderDemoChart([100, 80, 75, 70], [100, 40, 20, 10], 'Symptomatic Progression (%)');
+        }
+        // ... (Repeat if statements for the other 12 widgets)
+    }
+
+    function renderDemoChart(data1, data2, labelY) {
+        const ctx = document.getElementById('demoChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Baseline', '6m', '12m', '24m'],
+                datasets: [
+                    { label: 'Conservative', data: data1, borderColor: '#bdc3c7', fill: false },
+                    { label: 'Surgical Intervention', data: data2, borderColor: '#3498db', fill: false }
+                ]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    }
+</script>
+</body>
+</html>
