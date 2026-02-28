@@ -1,6 +1,6 @@
 /**
- * OutcomeLogic™ Universal Clinical Engine v4.1
- * Updates: Collapsible Accordion Sidebar & Global Medical Disclaimers
+ * OutcomeLogic™ Universal Clinical Engine v4.2
+ * Updates: Auto-scaling Y-Axis, Custom Legends, Dynamic HTML Outputs, Bar Chart Support
  */
 
 let currentChart = null;
@@ -12,7 +12,6 @@ const GLOBAL_DISCLAIMER = `
     </div>
 `;
 
-// 1. DYNAMIC COLLAPSIBLE SIDEBAR
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
     if (!nav) return;
@@ -21,10 +20,9 @@ function initializeSidebar() {
     const categories = [...new Set(Object.values(TRIAL_DATA).map(t => t.category))];
     
     categories.forEach((cat, index) => {
-        // Create collapsible details element
         const details = document.createElement('details');
         details.className = 'nav-category';
-        if (index === 0) details.open = true; // Open the first category by default
+        if (index === 0) details.open = true; 
 
         const summary = document.createElement('summary');
         summary.className = 'nav-label';
@@ -50,7 +48,6 @@ function initializeSidebar() {
     });
 }
 
-// 2. MULTI-MODE WIDGET LOADER
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
@@ -87,7 +84,10 @@ function loadWidget(type, event) {
                         ${trial.controlsHTML}
                         <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="exportToPDF('${trial.shortName}')">Download Evidence PDF</button>
                     </div>
-                    <div class="chart-box" id="chart-mount"><canvas id="mainChart"></canvas></div>
+                    <div>
+                        <div class="chart-box" id="chart-mount"><canvas id="mainChart"></canvas></div>
+                        <div id="dynamic-output-box" style="display:none; margin-top: 25px; padding: 15px; border-radius: 6px; font-size: 14px; color: #444; line-height: 1.5; background: #f4f9fc;"></div>
+                    </div>
                 </div>
                 <div class="governance-box">${trial.footer_note}</div>
                 ${GLOBAL_DISCLAIMER}
@@ -97,45 +97,81 @@ function loadWidget(type, event) {
     }
 }
 
-// 3. THE ROUTER
 function runCalculation(type) {
     const trial = TRIAL_DATA[type];
     if (!trial || typeof trial.calculate !== 'function') return;
 
     const results = trial.calculate();
 
-    if (results && results.primaryData) {
-        renderChart('mainChart', results.primaryData, results.secondaryData, trial.color, results.labelY, trial.xAxisLabels);
+    if (results) {
+        // Handle Dynamic Text Output (Like TOPKAT)
+        const outputBox = document.getElementById('dynamic-output-box');
+        if (results.outputHTML) {
+            outputBox.innerHTML = results.outputHTML;
+            outputBox.style.borderLeft = `5px solid ${results.outputColor || 'var(--brand-cyan)'}`;
+            outputBox.style.display = 'block';
+        } else if (outputBox) {
+            outputBox.style.display = 'none';
+        }
+
+        if (results.primaryData) {
+            renderChart('mainChart', results, trial.color, trial.xAxisLabels);
+        }
     }
 }
 
-// 4. CHARTING CORE
-function renderChart(id, primary, secondary, color, labelY, xLabels) {
+function renderChart(id, results, color, xLabels) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
-    const safeLabels = xLabels || primary.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
+    
+    const isBar = results.chartType === 'bar';
+    const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
+
+    const dataset1 = {
+        label: results.primaryLabel || 'Selected Patient Scenario',
+        data: results.primaryData,
+        borderColor: color,
+        backgroundColor: isBar ? color : `${color}20`,
+        borderWidth: isBar ? 1 : 4,
+        fill: !isBar,
+        tension: 0.3,
+        pointBackgroundColor: color,
+        pointRadius: isBar ? 0 : 4
+    };
+
+    const dataset2 = {
+        label: results.secondaryLabel || 'Trial Average / Comparator',
+        data: results.secondaryData,
+        borderColor: results.secondaryColor || '#cbd5e1',
+        backgroundColor: isBar ? (results.secondaryColor || '#cbd5e1') : 'transparent',
+        borderDash: isBar ? [] : [5, 5],
+        pointRadius: 0,
+        fill: false,
+        tension: 0.3,
+        borderWidth: isBar ? 1 : 2
+    };
 
     currentChart = new Chart(ctx, {
-        type: 'line',
+        type: isBar ? 'bar' : 'line',
         data: {
-            labels: safeLabels,
-            datasets: [
-                { label: 'Selected Patient Scenario', data: primary, borderColor: color, backgroundColor: `${color}20`, borderWidth: 4, fill: true, tension: 0.3, pointBackgroundColor: color, pointRadius: 4 },
-                { label: 'Trial Average / Comparator', data: secondary, borderColor: '#cbd5e1', borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.3, borderWidth: 2 }
-            ]
+            labels: results.customXLabels || safeLabels,
+            datasets: [dataset1, dataset2]
         },
         options: { 
             maintainAspectRatio: false, 
             plugins: { legend: { position: 'top', labels: { font: { weight: 'bold', family: 'Inter', color: '#334155' } } } },
             scales: { 
-                y: { min: 0, max: 100, title: { display: true, text: labelY, font: { weight: 'bold', color: '#475569' } } },
+                y: { 
+                    min: results.yMin !== undefined ? results.yMin : 0, 
+                    max: results.yMax !== undefined ? results.yMax : 100, 
+                    title: { display: true, text: results.labelY, font: { weight: 'bold', color: '#475569' } } 
+                },
                 x: { grid: { display: false } }
             }
         }
     });
 }
 
-// 5. PDF EXPORT HOOK
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
@@ -154,7 +190,7 @@ async function exportToPDF(filename) {
     };
     
     try { await html2pdf().set(opt).from(element).save(); } 
-    catch (err) { alert("Failed to generate PDF. Please ensure html2pdf.js is loaded correctly."); } 
+    catch (err) { alert("Failed to generate PDF."); } 
     finally { btn.innerText = originalText; btn.disabled = false; element.style.backgroundColor = ""; }
 }
 
