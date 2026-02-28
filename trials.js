@@ -472,5 +472,83 @@ const TRIAL_DATA = {
             </div>
         `,
         footer_note: "Milestones are clinical estimates. Driving requires ability to perform an emergency stop without pain distraction. Alcohol must be avoided while on prescription opioids."
+    },
+cataract: {
+        category: "Ophthalmology",
+        type: "calculated",
+        shortName: "Cataract (NOD)",
+        title: "National Ophthalmology Database",
+        subtitle: "Cataract Surgery Risk & Visual Recovery",
+        source: "RCOphth NOD Data",
+        color: "#eab308", // Yellow/Gold
+        xAxisLabels: ['Pre-Op', '1 Week', '4 Weeks', '3 Months', '6 Months', '12 Months'],
+        // Baseline Probability of achieving/maintaining good visual acuity (6/12 or better)
+        baseline_success: [20, 85, 95, 96, 96, 96],
+        controlsHTML: `
+            <div style="background:#fef3c7; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #eab308;">
+                <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; font-weight:800; color:#b45309; font-size:14px;">
+                    <input type="checkbox" id="cat-alpha" onchange="runCalculation('cataract')"> Alpha-Blockers (e.g., Tamsulosin)?
+                </label>
+            </div>
+            <label class="nav-label">Age Cohort</label>
+            <select id="cat-age" class="ee-select" onchange="runCalculation('cataract')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="1.0">Under 80</option>
+                <option value="0.95">80 or Older</option>
+            </select>
+            <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:14px;">
+                <input type="checkbox" id="cat-diab" onchange="runCalculation('cataract')"> Diabetic Retinopathy Present
+            </label>
+        `,
+        footer_note: "Alpha-blockers highly increase the risk of Intraoperative Floppy Iris Syndrome (IFIS) and Posterior Capsule Rupture (PCR), blunting visual recovery."
+    },
+
+    eclipse: {
+        category: "Gynaecology",
+        type: "calculated",
+        shortName: "HMB (ECLIPSE)",
+        title: "ECLIPSE Trial: 10-Year Data",
+        subtitle: "Mirena Coil (LNG-IUS) vs. Hysterectomy",
+        source: "The Lancet (10-Year Follow-up)",
+        color: "#ec4899", // Pink
+        xAxisLabels: ['Baseline', '1 Year', '2 Years', '5 Years', '10 Years'],
+        // Menorrhagia Multi-Attribute Scale (MMAS) - Quality of Life Score 0-100
+        baseline_hyst: [30, 95, 96, 96, 97],
+        baseline_mirena: [30, 85, 82, 80, 78],
+        controlsHTML: `
+            <label class="nav-label">Primary Intervention</label>
+            <select id="gyn-path" class="ee-select" onchange="runCalculation('eclipse')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-weight:800; color:var(--brand-navy);">
+                <option value="mirena">Mirena Coil (LNG-IUS)</option>
+                <option value="hyst">Surgical Hysterectomy</option>
+            </select>
+            <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:14px;">
+                <input type="checkbox" id="gyn-fibroid" onchange="runCalculation('eclipse')"> Large Uterine Fibroids Present
+            </label>
+        `,
+        footer_note: "ECLIPSE tracks Quality of Life (MMAS). Hysterectomy offers immediate definitive cure; Mirena offers high QoL without surgical risk, though ~40% cross over to surgery by 10 years."
+    },
+
+    nature: {
+        category: "ENT",
+        type: "calculated",
+        shortName: "Tonsils (NAtuRE)",
+        title: "Adult Tonsillectomy Outcomes",
+        subtitle: "Surgery vs. Conservative Management",
+        source: "The Lancet / NAtuRE Cohort",
+        color: "#14b8a6", // Teal
+        xAxisLabels: ['Baseline', '6m', '12m', '18m', '24m'],
+        // Probability of remaining Episode-Free
+        baseline_surg: [100, 95, 92, 90, 88],
+        baseline_cons: [100, 60, 45, 35, 30],
+        controlsHTML: `
+            <label class="nav-label">Baseline Episode Frequency</label>
+            <select id="ent-freq" class="ee-select" onchange="runCalculation('nature')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="1.0">Standard Protocol (5-7 episodes/yr)</option>
+                <option value="0.8">High Frequency (>7 episodes/yr)</option>
+            </select>
+            <label class="ee-check-group" style="display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:14px;">
+                <input type="checkbox" id="ent-smoke" onchange="runCalculation('nature')"> Current Smoker
+            </label>
+        `,
+        footer_note: "Smokers face a statistically higher risk of secondary post-operative haemorrhage and delayed mucosal healing."
     }
 };
