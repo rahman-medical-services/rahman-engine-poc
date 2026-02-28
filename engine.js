@@ -1,6 +1,6 @@
 /**
  * OutcomeLogic™ Universal Clinical Engine v4.2
- * Updates: Auto-scaling Y-Axis, Custom Legends, Dynamic HTML Outputs, Bar Chart Support
+ * Updates: Mobile Responsiveness, Sidebar Overlay, Auto-Collapse
  */
 
 let currentChart = null;
@@ -11,6 +11,14 @@ const GLOBAL_DISCLAIMER = `
         &copy; 2026 Rahman Medical Services Limited. All Rights Reserved.
     </div>
 `;
+
+// Mobile Menu Toggle
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    sidebar.classList.toggle('open');
+    overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+}
 
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
@@ -55,6 +63,12 @@ function loadWidget(type, event) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (event) event.target.classList.add('active');
 
+    // Auto-close sidebar on mobile after selection
+    if (window.innerWidth <= 900) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('open')) toggleSidebar();
+    }
+
     if (trial.type === "passport") {
         mount.innerHTML = `
             <div class="widget-container" id="printable-area">
@@ -66,7 +80,7 @@ function loadWidget(type, event) {
                         ${trial.narrativeTemplate}
                         <div id="initial-message" style="text-align:center; padding:50px; color:#64748b; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
                             <h3 style="margin-top:0;">Assessment Pending</h3>
-                            <p style="font-size:0.9rem;">Complete the clinical profile on the left to generate the patient narrative.</p>
+                            <p style="font-size:0.9rem;">Complete the clinical profile to generate the patient narrative.</p>
                         </div>
                     </div>
                 </div>
@@ -104,7 +118,6 @@ function runCalculation(type) {
     const results = trial.calculate();
 
     if (results) {
-        // Handle Dynamic Text Output (Like TOPKAT)
         const outputBox = document.getElementById('dynamic-output-box');
         if (results.outputHTML) {
             outputBox.innerHTML = results.outputHTML;
@@ -127,39 +140,36 @@ function renderChart(id, results, color, xLabels) {
     const isBar = results.chartType === 'bar';
     const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
 
-    const dataset1 = {
-        label: results.primaryLabel || 'Selected Patient Scenario',
-        data: results.primaryData,
-        borderColor: color,
-        backgroundColor: isBar ? color : `${color}20`,
-        borderWidth: isBar ? 1 : 4,
-        fill: !isBar,
-        tension: 0.3,
-        pointBackgroundColor: color,
-        pointRadius: isBar ? 0 : 4
-    };
-
-    const dataset2 = {
-        label: results.secondaryLabel || 'Trial Average / Comparator',
-        data: results.secondaryData,
-        borderColor: results.secondaryColor || '#cbd5e1',
-        backgroundColor: isBar ? (results.secondaryColor || '#cbd5e1') : 'transparent',
-        borderDash: isBar ? [] : [5, 5],
-        pointRadius: 0,
-        fill: false,
-        tension: 0.3,
-        borderWidth: isBar ? 1 : 2
-    };
-
     currentChart = new Chart(ctx, {
         type: isBar ? 'bar' : 'line',
         data: {
             labels: results.customXLabels || safeLabels,
-            datasets: [dataset1, dataset2]
+            datasets: [
+                { 
+                    label: results.primaryLabel || 'Selected Patient Scenario', 
+                    data: results.primaryData, 
+                    borderColor: color, 
+                    backgroundColor: isBar ? color : `${color}20`, 
+                    borderWidth: isBar ? 1 : 4, 
+                    fill: !isBar, 
+                    tension: 0.3, 
+                    pointBackgroundColor: color, 
+                    pointRadius: isBar ? 0 : 4 
+                },
+                { 
+                    label: results.secondaryLabel || 'Trial Average / Comparator', 
+                    data: results.secondaryData, 
+                    borderColor: results.secondaryColor || '#cbd5e1', 
+                    backgroundColor: isBar ? (results.secondaryColor || '#cbd5e1') : 'transparent', 
+                    borderDash: isBar ? [] : [5, 5], 
+                    pointRadius: 0, fill: false, tension: 0.3, 
+                    borderWidth: isBar ? 1 : 2 
+                }
+            ]
         },
         options: { 
             maintainAspectRatio: false, 
-            plugins: { legend: { position: 'top', labels: { font: { weight: 'bold', family: 'Inter', color: '#334155' } } } },
+            plugins: { legend: { position: 'top', labels: { font: { weight: 'bold', family: 'Inter', color: '#334155' }, boxWidth: 15 } } },
             scales: { 
                 y: { 
                     min: results.yMin !== undefined ? results.yMin : 0, 
@@ -185,7 +195,7 @@ async function exportToPDF(filename) {
         margin: [15, 12, 15, 12],
         filename: `${filename}-Evidence-Summary.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, windowHeight: element.scrollHeight + 100 },
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 1000 }, /* Force desktop layout for PDF even on mobile */
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
