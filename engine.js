@@ -1,5 +1,5 @@
 /**
- * OutcomeLogic™ Universal Clinical Engine v3.1
+ * OutcomeLogic™ Universal Clinical Engine v3.5
  * (c) 2026 Rahman Medical Services Limited. All Rights Reserved.
  * Core Logic: Multi-Mode Rendering, Power Law Math, Predictive Baselines, Practical Milestones, PDF Generation.
  */
@@ -191,6 +191,36 @@ function runCalculation(type) {
         secondaryData = trial.baseline_tkr.map(s => Math.pow(s/100, activityHR) * 100);
         labelY = "Implant Survival - Free from Revision (%)";
     }
+    else if (type === 'cataract') {
+        const ifisRisk = document.getElementById('cat-alpha')?.checked ? 0.82 : 1.0; 
+        const ageRisk = parseFloat(document.getElementById('cat-age')?.value) || 1.0;
+        const diabRisk = document.getElementById('cat-diab')?.checked ? 0.90 : 1.0;
+        
+        const combinedRisk = ifisRisk * ageRisk * diabRisk;
+        primaryData = trial.baseline_success.map((s, i) => i === 0 ? s : s * combinedRisk);
+        secondaryData = trial.baseline_success; 
+        labelY = "Prob. of Sustained Visual Recovery (%)";
+    }
+    else if (type === 'eclipse') {
+        const path = document.getElementById('gyn-path')?.value || 'mirena';
+        const fibroidMod = document.getElementById('gyn-fibroid')?.checked ? 0.85 : 1.0; 
+
+        const baseArray = path === 'mirena' ? trial.baseline_mirena : trial.baseline_hyst;
+        const comparator = path === 'mirena' ? trial.baseline_hyst : trial.baseline_mirena;
+
+        primaryData = baseArray.map((s, i) => (path === 'mirena' && i > 0) ? s * fibroidMod : s);
+        secondaryData = comparator;
+        labelY = "MMAS Quality of Life Score (0-100)";
+    }
+    else if (type === 'nature') {
+        const freqMod = parseFloat(document.getElementById('ent-freq')?.value) || 1.0;
+        const smokeMod = document.getElementById('ent-smoke')?.checked ? 0.90 : 1.0; 
+        
+        const totalMod = freqMod * smokeMod;
+        primaryData = trial.baseline_surg.map((s, i) => i === 0 ? 100 : s * totalMod);
+        secondaryData = trial.baseline_cons; 
+        labelY = "Probability of Remaining Episode-Free (%)";
+    }
     else if (type === 'recovery') {
         const surgeryType = document.getElementById('rec-surgery')?.value || 'lap_minor';
         const jobFactor = parseFloat(document.getElementById('rec-job')?.value) || 1.0;
@@ -199,13 +229,11 @@ function runCalculation(type) {
         const selectedBaseline = trial.baselines[surgeryType] || trial.baselines['lap_minor'];
         const recoveryModifier = jobFactor * fitFactor;
         
-        // Render the Chart
         primaryData = selectedBaseline.map(s => Math.min(s * recoveryModifier, 100)); 
         secondaryData = selectedBaseline; 
         labelY = "Return to Normal Function (%)";
 
-        // Calculate Practical Milestones dynamically
-        // Lower fitness (< 1.0) creates a multiplier that delays recovery milestones
+        // Practical Milestones
         const delay = (fitFactor < 1.0) ? 1.3 : 1.0; 
         
         let driving, lifting, intimacy, alcohol;
@@ -227,7 +255,6 @@ function runCalculation(type) {
             alcohol = "Off Opioids";
         }
 
-        // Update DOM Elements for practical milestones
         if(document.getElementById('rec-driving')) document.getElementById('rec-driving').innerText = driving;
         if(document.getElementById('rec-lifting')) document.getElementById('rec-lifting').innerText = lifting;
         if(document.getElementById('rec-sex')) document.getElementById('rec-sex').innerText = intimacy;
