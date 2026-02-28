@@ -1,21 +1,38 @@
 /**
- * OutcomeLogic™ Universal Clinical Engine v4.0
- * Fully decoupled architecture using Open-Closed Principle.
+ * OutcomeLogic™ Universal Clinical Engine v4.1
+ * Updates: Collapsible Accordion Sidebar & Global Medical Disclaimers
  */
 
 let currentChart = null;
 
+const GLOBAL_DISCLAIMER = `
+    <div class="pdf-disclaimer">
+        <strong>Medical Evidence Note:</strong> This document is for educational purposes only. It visualises published research data by applying clinical modifiers to baseline cohorts. It does not constitute a personalised clinical prediction, diagnostic tool, or substitute for formal medical advice. <br>
+        &copy; 2026 Rahman Medical Services Limited. All Rights Reserved.
+    </div>
+`;
+
+// 1. DYNAMIC COLLAPSIBLE SIDEBAR
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
     if (!nav) return;
     nav.innerHTML = ''; 
 
     const categories = [...new Set(Object.values(TRIAL_DATA).map(t => t.category))];
-    categories.forEach(cat => {
-        const label = document.createElement('span');
-        label.className = 'nav-label';
-        label.innerText = cat;
-        nav.appendChild(label);
+    
+    categories.forEach((cat, index) => {
+        // Create collapsible details element
+        const details = document.createElement('details');
+        details.className = 'nav-category';
+        if (index === 0) details.open = true; // Open the first category by default
+
+        const summary = document.createElement('summary');
+        summary.className = 'nav-label';
+        summary.innerText = cat;
+        details.appendChild(summary);
+
+        const content = document.createElement('div');
+        content.className = 'category-content';
 
         Object.keys(TRIAL_DATA).forEach(key => {
             const trial = TRIAL_DATA[key];
@@ -24,12 +41,16 @@ function initializeSidebar() {
                 btn.className = 'nav-btn';
                 btn.innerText = trial.shortName;
                 btn.onclick = (e) => loadWidget(key, e);
-                nav.appendChild(btn);
+                content.appendChild(btn);
             }
         });
+
+        details.appendChild(content);
+        nav.appendChild(details);
     });
 }
 
+// 2. MULTI-MODE WIDGET LOADER
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
@@ -53,6 +74,7 @@ function loadWidget(type, event) {
                     </div>
                 </div>
                 <div class="governance-box">${trial.footer_note}</div>
+                ${GLOBAL_DISCLAIMER}
             </div>
         `;
     } else {
@@ -68,27 +90,26 @@ function loadWidget(type, event) {
                     <div class="chart-box" id="chart-mount"><canvas id="mainChart"></canvas></div>
                 </div>
                 <div class="governance-box">${trial.footer_note}</div>
+                ${GLOBAL_DISCLAIMER}
             </div>
         `;
         runCalculation(type);
     }
 }
 
-// THE ROUTER: Calls the specific logic inside the trial object
+// 3. THE ROUTER
 function runCalculation(type) {
     const trial = TRIAL_DATA[type];
     if (!trial || typeof trial.calculate !== 'function') return;
 
-    // Execute the trial's internal math
     const results = trial.calculate();
 
-    // If the trial returns chart data, render the chart.
-    // (Models like the Readiness Passport will return null after updating the DOM).
     if (results && results.primaryData) {
         renderChart('mainChart', results.primaryData, results.secondaryData, trial.color, results.labelY, trial.xAxisLabels);
     }
 }
 
+// 4. CHARTING CORE
 function renderChart(id, primary, secondary, color, labelY, xLabels) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
@@ -114,6 +135,7 @@ function renderChart(id, primary, secondary, color, labelY, xLabels) {
     });
 }
 
+// 5. PDF EXPORT HOOK
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
