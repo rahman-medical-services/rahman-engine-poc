@@ -20,20 +20,35 @@
             margin: 0; background: #e2e8f0; color: var(--text-main);
             display: flex; height: 100vh; overflow: hidden;
         }
-        /* Sidebar Styles */
+        
+        /* --- Sidebar Styles --- */
         #sidebar {
-            width: 280px; background: white; border-right: 1px solid #cbd5e1;
-            display: flex; flex-direction: column; overflow-y: auto;
+            width: 300px; background: white; border-right: 1px solid #cbd5e1;
+            display: flex; flex-direction: column; z-index: 10;
         }
         .sidebar-header {
             padding: 20px; background: var(--brand-navy); color: white;
-            font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px;
+            font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px; flex-shrink: 0;
         }
-        #sidebar-nav { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .nav-label {
+        #sidebar-nav { 
+            padding: 10px 0; display: flex; flex-direction: column; 
+            overflow-y: auto; flex-grow: 1; 
+        }
+        
+        /* Collapsible Accordion Styles */
+        details.nav-category { margin-bottom: 2px; }
+        summary.nav-label {
             font-size: 0.75rem; text-transform: uppercase; font-weight: 800;
-            color: var(--text-muted); margin-top: 15px; margin-bottom: 5px;
+            color: var(--text-muted); padding: 12px 20px; cursor: pointer;
+            list-style: none; display: flex; justify-content: space-between; align-items: center;
+            background: white; transition: background 0.2s;
         }
+        summary.nav-label:hover { background: var(--bg-light); }
+        summary.nav-label::-webkit-details-marker { display: none; }
+        summary.nav-label::after { content: '▼'; font-size: 0.6rem; transition: transform 0.2s; color: #94a3b8; }
+        details[open] summary.nav-label::after { transform: rotate(180deg); }
+        .category-content { display: flex; flex-direction: column; gap: 5px; padding: 5px 20px 15px 20px; }
+
         .nav-btn {
             background: var(--bg-light); border: 1px solid #e2e8f0; padding: 10px 15px;
             border-radius: 8px; text-align: left; font-weight: 600; color: var(--text-main);
@@ -42,7 +57,13 @@
         .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
         .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
         
-        /* Main Content Styles */
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; line-height: 1.5;
+            border-top: 1px solid #e2e8f0; background: var(--bg-light); flex-shrink: 0; text-align: center;
+        }
+
+        /* --- Main Content Styles --- */
         #main-content { flex: 1; padding: 30px; overflow-y: auto; }
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
@@ -58,21 +79,32 @@
         .ee-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-weight: 600; margin-bottom: 15px; }
         .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
         .chart-box { position: relative; height: 400px; width: 100%; }
-        .governance-box { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
+        .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
         .evidence-card { background: var(--bg-light); padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
         .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
         .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+        
+        /* Global PDF Disclaimer */
+        .pdf-disclaimer {
+            margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; 
+            padding-top: 10px; line-height: 1.4;
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <div class="sidebar-header">OutcomeLogic™</div>
         <div id="sidebar-nav"></div>
+        <div class="sidebar-footer">
+            <strong>v4.1 Clinical Build</strong><br>
+            &copy; 2026 Rahman Medical Services Limited.<br>Confidential & Proprietary.
+        </div>
     </div>
     <div id="main-content">
         <div id="content-mount">
             <div style="text-align: center; color: #64748b; margin-top: 20vh;">
                 <h2>Select a clinical module to begin.</h2>
+                <p>Ensure patient data is anonymised before generating PDF summaries.</p>
             </div>
         </div>
     </div>
