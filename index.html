@@ -3,64 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OutcomeLogic™ | Evidence-Based Intelligence</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>OutcomeLogic™ | Clinical Evidence Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --brand-navy: #0f172a;
+            --brand-cyan: #0ea5e9;
+            --primary: #1e293b;
+            --bg-light: #f8fafc;
+            --text-main: #334155;
+            --text-muted: #64748b;
+        }
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; background: #e2e8f0; color: var(--text-main);
+            display: flex; height: 100vh; overflow: hidden;
+        }
+        /* Sidebar Styles */
+        #sidebar {
+            width: 280px; background: white; border-right: 1px solid #cbd5e1;
+            display: flex; flex-direction: column; overflow-y: auto;
+        }
+        .sidebar-header {
+            padding: 20px; background: var(--brand-navy); color: white;
+            font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px;
+        }
+        #sidebar-nav { padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .nav-label {
+            font-size: 0.75rem; text-transform: uppercase; font-weight: 800;
+            color: var(--text-muted); margin-top: 15px; margin-bottom: 5px;
+        }
+        .nav-btn {
+            background: var(--bg-light); border: 1px solid #e2e8f0; padding: 10px 15px;
+            border-radius: 8px; text-align: left; font-weight: 600; color: var(--text-main);
+            cursor: pointer; transition: 0.2s;
+        }
+        .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
+        .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
+        
+        /* Main Content Styles */
+        #main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .widget-container {
+            background: white; border-radius: 16px; padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
+        }
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+        .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
+        .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
+        
+        /* UI Elements */
+        .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
+        .ee-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-weight: 600; margin-bottom: 15px; }
+        .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
+        .chart-box { position: relative; height: 400px; width: 100%; }
+        .governance-box { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
+        .evidence-card { background: var(--bg-light); padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+    </style>
 </head>
 <body>
-
-<div id="access-modal">
-    <div class="modal-content">
-        <h2 style="margin-top:0; color:#0f172a;">Confidential Access</h2>
-        <p style="color:#64748b; font-size: 0.9rem; line-height:1.5;">
-            You are accessing the <strong>OutcomeLogic™</strong> Proof of Concept. 
-            By entering, you agree that this material is the proprietary IP of 
-            <strong>Rahman Medical Services Limited</strong> and shall not be distributed.
-        </p>
-        <button class="nav-btn active" style="text-align:center; width:auto; padding: 12px 30px; margin: 0 auto; display: block;" 
-                onclick="document.getElementById('access-modal').style.display='none'">
-            I Agree & Enter
-        </button>
+    <div id="sidebar">
+        <div class="sidebar-header">OutcomeLogic™</div>
+        <div id="sidebar-nav"></div>
     </div>
-</div>
-
-<nav id="sidebar">
-    <div class="logo-text">OutcomeLogic™</div>
-    <div class="logo-sub">Clinical Intelligence Suite</div>
-    
-    <div id="sidebar-nav"></div>
-</nav>
-
-<main id="main-stage">
-    <div id="content-mount">
-        <div class="widget-container">
-            <h1 style="font-size: 2.5rem; margin-top:0;">Platform Initialised</h1>
-            <p style="color:#64748b; font-size: 1.2rem;">Select a specialty module from the sidebar to visualize trial-based outcomes.</p>
-            <div style="margin-top:40px; padding:20px; background:#f1f5f9; border-radius:12px; border-left:4px solid #2563eb;">
-                <span style="font-weight:800; color:#0f172a;">Founder's Note:</span><br>
-                This PoC demonstrates the <strong>Zero-PHI Architecture</strong>. All clinical logic is executed client-side.
+    <div id="main-content">
+        <div id="content-mount">
+            <div style="text-align: center; color: #64748b; margin-top: 20vh;">
+                <h2>Select a clinical module to begin.</h2>
             </div>
         </div>
     </div>
 
-    <footer id="footer">
-        <div>
-            <strong>CLINICAL GOVERNANCE</strong><br>
-            OutcomeLogic™ is a decision support aid. All visualisations are mapped from peer-reviewed trial data. 
-            Zero-PHI Architecture: Application executes 100% client-side.
-        </div>
-        <div style="text-align: right;">
-            <strong>Copyright © 2026 Rahman Medical Services Limited.</strong><br>
-            All Rights Reserved. Confidential & Proprietary.
-        </div>
-    </footer>
-</main>
-
-<script src="trials.js"></script>
-<script src="engine.js"></script>
-
+    <script src="trials.js"></script>
+    <script src="engine.js"></script>
 </body>
 </html>
