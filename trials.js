@@ -95,40 +95,79 @@ const TRIAL_DATA = {
         `,
         footer_note: "Visualising the probability of moving from watchful waiting to surgery due to symptom progression."
     },
-    readiness: {
+ readiness: {
         category: "Peri-operative",
         type: "passport",
         shortName: "Readiness Passport",
         title: "Surgical Readiness Assessment",
-        subtitle: "DASI / STOP-BANG Clinical Optimisation",
+        subtitle: "Clinical Optimisation & Risk Synthesis",
         source: "Rahman Medical Services",
         color: "#6facd5",
         controlsHTML: `
-            <div class="rh-group">
-                <label class="rh-title">Functional Capacity (DASI)</label>
-                <div class="rh-question" style="display:flex; justify-content:space-between; margin:8px 0; font-size:13px;">
-                    <label>Climb a flight of stairs?</label><input type="checkbox" class="d-val" value="5.50">
+            <div id="readiness-inputs">
+                <div class="rh-group">
+                    <label class="rh-title">Patient Identification</label>
+                    <input type="text" id="in-name" placeholder="Patient Initials / ID" style="width:100%; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
                 </div>
-                <div class="rh-question" style="display:flex; justify-content:space-between; margin:8px 0; font-size:13px;">
-                    <label>Strenuous sports / Swimming?</label><input type="checkbox" class="d-val" value="7.50">
+
+                <div class="rh-group" style="margin-top:20px;">
+                    <label class="rh-title">1. Functional Capacity (DASI)</label>
+                    <div class="rh-question-grid">
+                        <label><input type="checkbox" class="d-val" value="5.50"> Climb stairs / Walk up hill</label>
+                        <label><input type="checkbox" class="d-val" value="8.00"> Run short distance</label>
+                        <label><input type="checkbox" class="d-val" value="8.00"> Heavy housework (lifting)</label>
+                        <label><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming/Tennis)</label>
+                    </div>
                 </div>
-            </div>
-            <div class="rh-group" style="margin-top:20px;">
-                <label class="rh-title">Anaesthetic Risk (STOP-BANG)</label>
-                <div class="rh-question" style="display:flex; justify-content:space-between; margin:8px 0; font-size:13px;">
-                    <label>Snore loudly?</label><input type="checkbox" class="s-val">
+
+                <div class="rh-group" style="margin-top:20px;">
+                    <label class="rh-title">2. Airway & Risk (STOP-BANG)</label>
+                    <div class="rh-question-grid">
+                        <label><input type="checkbox" class="s-val"> Snore loudly?</label>
+                        <label><input type="checkbox" class="s-val"> Often feel tired/fatigued?</label>
+                        <label><input type="checkbox" class="s-val"> Observed apnea during sleep?</label>
+                        <label><input type="checkbox" class="s-val" id="in-bmi"> BMI greater than 35?</label>
+                    </div>
                 </div>
-                <div class="rh-question" style="display:flex; justify-content:space-between; margin:8px 0; font-size:13px;">
-                    <label>BMI > 35?</label><input type="checkbox" class="s-val">
+
+                <div class="rh-group" style="margin-top:20px;">
+                    <label class="rh-title">3. Optimisation Pillars</label>
+                    <div class="rh-question-grid">
+                        <label><input type="checkbox" id="p-smoke"> Current Smoker / Vaper</label>
+                        <label><input type="checkbox" id="p-diab"> Diabetes (HbA1c > 64)</label>
+                        <label><input type="checkbox" id="p-thin"> On Blood Thinners</label>
+                    </div>
                 </div>
+
+                <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center;" onclick="processReadiness()">Process Clinical Narrative</button>
             </div>
         `,
-        previewPlaceholder: `
-            <div style="background:#f8fafc; padding:30px; border:1px dashed #cbd5e1; border-radius:12px; text-align:center;">
-                <h3 style="color:#142b45;">Digital Passport Preview</h3>
-                <p style="color:#64748b; font-size:0.9rem;">Patient optimisation metrics will be synthesised into a downloadable PDF summary for anaesthetic review.</p>
+        // This is the container where the visible narrative will be injected
+        narrativeTemplate: `
+            <div id="web-narrative-display" style="display:none; margin-top:30px; animation: fadeIn 0.5s ease;">
+                <div style="background:var(--primary); color:white; padding:25px; border-radius:12px; margin-bottom:20px;">
+                    <h3 style="margin-top:0; color:#6facd5;">Clinical Narrative Summary</h3>
+                    <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
+                </div>
+                
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="evidence-card">
+                        <div class="stat-label">Functional Capacity</div>
+                        <div id="out-mets" class="stat-main">--</div>
+                        <div class="stat-label">METs (Threshold > 4.0)</div>
+                    </div>
+                    <div class="evidence-card">
+                        <div class="stat-label">Anaesthetic Risk</div>
+                        <div id="out-sb" class="stat-main">--</div>
+                        <div class="stat-label">STOP-BANG Score</div>
+                    </div>
+                </div>
+
+                <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem;"></div>
+                
+                <button class="nav-btn active" style="margin-top:20px; width:100%; background:#10b981;" onclick="exportToPDF('Readiness-Passport')">Download Official Passport (PDF)</button>
             </div>
         `,
-        footer_note: "Based on the Duke Activity Status Index. Functional reserve (METs > 4.0) is a key peri-operative predictor."
+        footer_note: "Clinical synthesis of patient-reported metrics via the Duke Activity Status Index (DASI). (c) 2026 Rahman Medical Services."
     }
 };
