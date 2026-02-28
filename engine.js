@@ -1,10 +1,12 @@
 /**
- * OutcomeLogic™ Universal Clinical Engine v3.0
+ * OutcomeLogic™ Universal Clinical Engine v3.1
  * (c) 2026 Rahman Medical Services Limited. All Rights Reserved.
+ * Core Logic: Multi-Mode Rendering, Power Law Math, Predictive Baselines, Practical Milestones, PDF Generation.
  */
 
 let currentChart = null;
 
+// 1. DYNAMIC SIDEBAR BUILDER
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
     if (!nav) return;
@@ -30,6 +32,7 @@ function initializeSidebar() {
     });
 }
 
+// 2. MULTI-MODE WIDGET LOADER
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
@@ -38,6 +41,7 @@ function loadWidget(type, event) {
     if (event) event.target.classList.add('active');
 
     if (trial.type === "passport") {
+        // --- PASSPORT NARRATIVE VIEW (e.g., Readiness) ---
         mount.innerHTML = `
             <div class="widget-container" id="printable-area">
                 <div class="header-flex">
@@ -61,6 +65,7 @@ function loadWidget(type, event) {
             </div>
         `;
     } else {
+        // --- CALCULATED MATH & CHART VIEW (e.g., Surgery, Oncology, Recovery) ---
         mount.innerHTML = `
             <div class="widget-container" id="printable-area">
                 <div class="header-flex">
@@ -84,6 +89,7 @@ function loadWidget(type, event) {
     }
 }
 
+// 3. READINESS PASSPORT LOGIC (NARRATIVE GENERATION)
 function processReadiness() {
     let dasi = 0;
     document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
@@ -100,6 +106,7 @@ function processReadiness() {
     
     if (pHTML === "<strong>Optimisation Requirements:</strong><br>") pHTML = "No specific pre-operative optimisation pillars identified at this stage.";
 
+    // UI Updates
     document.getElementById('initial-message').style.display = 'none';
     document.getElementById('web-narrative-display').style.display = 'block';
     
@@ -114,6 +121,7 @@ function processReadiness() {
     document.getElementById('out-advice').innerText = advice;
 }
 
+// 4. CLINICAL MATH ENGINE (Charts & Trajectories)
 function runCalculation(type) {
     const trial = TRIAL_DATA[type];
     if (!trial) return;
@@ -158,7 +166,6 @@ function runCalculation(type) {
         labelY = "Probability of Avoiding Surgery (%)";
     }
     else if (type === 'protect') {
-        
         const gleasonHR = parseFloat(document.getElementById('pro-gleason')?.value) || 1.0;
         const psaHR = parseFloat(document.getElementById('pro-psa')?.value) || 1.0;
         const totalHR = gleasonHR * psaHR;
@@ -167,10 +174,6 @@ function runCalculation(type) {
         labelY = "Metastasis-Free Survival (%)";
     }
     else if (type === 'bariatrics') {
-        
-
-[Image of Roux-en-Y gastric bypass vs sleeve gastrectomy]
-
         const surgType = document.getElementById('bar-surg')?.value || 'bypass';
         const diabMod = document.getElementById('bar-diab')?.checked ? 0.95 : 1.0; 
         const superObeseMod = document.getElementById('bar-bmi')?.checked ? 0.90 : 1.0;
@@ -216,7 +219,7 @@ function runCalculation(type) {
             driving = Math.round(14 * delay) + " Days";
             lifting = Math.round(6 * delay) + " Weeks";
             intimacy = Math.round(14 * delay) + " Days";
-            alcohol = "Strict Avoidance"; // Bariatric/Fundoplication specific
+            alcohol = "Strict Avoidance"; 
         } else {
             driving = Math.round(4 * delay) + " Weeks";
             lifting = Math.round(8 * delay) + " Weeks";
@@ -224,7 +227,7 @@ function runCalculation(type) {
             alcohol = "Off Opioids";
         }
 
-        // Update DOM Elements
+        // Update DOM Elements for practical milestones
         if(document.getElementById('rec-driving')) document.getElementById('rec-driving').innerText = driving;
         if(document.getElementById('rec-lifting')) document.getElementById('rec-lifting').innerText = lifting;
         if(document.getElementById('rec-sex')) document.getElementById('rec-sex').innerText = intimacy;
@@ -234,10 +237,12 @@ function runCalculation(type) {
     renderChart('mainChart', primaryData, secondaryData, trial.color, labelY, trial.xAxisLabels);
 }
 
+// 5. CHARTING CORE
 function renderChart(id, primary, secondary, color, labelY, xLabels) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
     
+    // Fallback labels if none provided
     const safeLabels = xLabels || primary.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
 
     currentChart = new Chart(ctx, {
@@ -271,17 +276,18 @@ function renderChart(id, primary, secondary, color, labelY, xLabels) {
         options: { 
             maintainAspectRatio: false, 
             plugins: { 
-                legend: { position: 'top', labels: { font: { weight: 'bold', family: 'Inter' } } },
+                legend: { position: 'top', labels: { font: { weight: 'bold', family: 'Inter', color: '#334155' } } },
                 tooltip: { backgroundColor: '#0f172a', padding: 12 }
             },
             scales: { 
-                y: { min: 0, max: 100, title: { display: true, text: labelY, font: { weight: 'bold' } } },
-                x: { grid: { display: false } }
+                y: { min: 0, max: 100, title: { display: true, text: labelY, font: { weight: 'bold', color: '#475569' } }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b', font: { weight: 'bold' } } }
             }
         }
     });
 }
 
+// 6. PDF EXPORT HOOK
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
@@ -289,6 +295,9 @@ async function exportToPDF(filename) {
     
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
+
+    // Optional Chart.js white background plugin effect applied via CSS during PDF gen
+    element.style.backgroundColor = "white";
 
     const opt = {
         margin: [15, 12, 15, 12],
@@ -302,11 +311,13 @@ async function exportToPDF(filename) {
         await html2pdf().set(opt).from(element).save();
     } catch (err) {
         console.error("PDF Export Error:", err);
-        alert("Failed to generate PDF. Please ensure html2pdf.js is loaded.");
+        alert("Failed to generate PDF. Please ensure html2pdf.js is loaded correctly.");
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
+        element.style.backgroundColor = ""; // Reset background
     }
 }
 
+// INITIALISE
 window.onload = initializeSidebar;
