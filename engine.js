@@ -196,18 +196,39 @@ function runCalculation(type) {
         const selectedBaseline = trial.baselines[surgeryType] || trial.baselines['lap_minor'];
         const recoveryModifier = jobFactor * fitFactor;
         
+        // Render the Chart
         primaryData = selectedBaseline.map(s => Math.min(s * recoveryModifier, 100)); 
         secondaryData = selectedBaseline; 
         labelY = "Return to Normal Function (%)";
 
-        let milestoneDay = "6 Weeks+";
-        if (primaryData[2] >= 50) milestoneDay = "Day 7";
-        else if (primaryData[3] >= 50) milestoneDay = "Day 14";
-        else if (primaryData[4] >= 50) milestoneDay = "Day 21";
-        else if (primaryData[5] >= 50) milestoneDay = "Day 28";
+        // Calculate Practical Milestones dynamically
+        // Lower fitness (< 1.0) creates a multiplier that delays recovery milestones
+        const delay = (fitFactor < 1.0) ? 1.3 : 1.0; 
         
-        const milestoneElement = document.getElementById('rec-milestone');
-        if (milestoneElement) milestoneElement.innerText = milestoneDay;
+        let driving, lifting, intimacy, alcohol;
+        
+        if (surgeryType === 'lap_minor') {
+            driving = Math.round(7 * delay) + " Days";
+            lifting = Math.round(4 * delay) + " Weeks";
+            intimacy = Math.round(7 * delay) + " Days";
+            alcohol = "Off Opioids";
+        } else if (surgeryType === 'lap_major') {
+            driving = Math.round(14 * delay) + " Days";
+            lifting = Math.round(6 * delay) + " Weeks";
+            intimacy = Math.round(14 * delay) + " Days";
+            alcohol = "Strict Avoidance"; // Bariatric/Fundoplication specific
+        } else {
+            driving = Math.round(4 * delay) + " Weeks";
+            lifting = Math.round(8 * delay) + " Weeks";
+            intimacy = Math.round(4 * delay) + " Weeks";
+            alcohol = "Off Opioids";
+        }
+
+        // Update DOM Elements
+        if(document.getElementById('rec-driving')) document.getElementById('rec-driving').innerText = driving;
+        if(document.getElementById('rec-lifting')) document.getElementById('rec-lifting').innerText = lifting;
+        if(document.getElementById('rec-sex')) document.getElementById('rec-sex').innerText = intimacy;
+        if(document.getElementById('rec-alcohol')) document.getElementById('rec-alcohol').innerText = alcohol;
     }
 
     renderChart('mainChart', primaryData, secondaryData, trial.color, labelY, trial.xAxisLabels);
