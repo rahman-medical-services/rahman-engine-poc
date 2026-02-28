@@ -19,23 +19,35 @@
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             margin: 0; background: #e2e8f0; color: var(--text-main);
             display: flex; height: 100vh; overflow: hidden;
+            flex-direction: row; /* Default desktop */
         }
         
+        /* --- Mobile Header (Hidden on Desktop) --- */
+        #mobile-header {
+            display: none; background: var(--brand-navy); color: white;
+            padding: 15px 20px; align-items: center; justify-content: space-between;
+            z-index: 50; flex-shrink: 0;
+        }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        #mobile-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 90;
+        }
+
         /* --- Sidebar Styles --- */
         #sidebar {
             width: 300px; background: white; border-right: 1px solid #cbd5e1;
-            display: flex; flex-direction: column; z-index: 10;
+            display: flex; flex-direction: column; z-index: 100;
+            transition: transform 0.3s ease;
         }
         .sidebar-header {
             padding: 20px; background: var(--brand-navy); color: white;
             font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px; flex-shrink: 0;
         }
-        #sidebar-nav { 
-            padding: 10px 0; display: flex; flex-direction: column; 
-            overflow-y: auto; flex-grow: 1; 
-        }
+        #sidebar-nav { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; flex-grow: 1; }
         
-        /* Collapsible Accordion Styles */
+        /* Accordion Styles */
         details.nav-category { margin-bottom: 2px; }
         summary.nav-label {
             font-size: 0.75rem; text-transform: uppercase; font-weight: 800;
@@ -57,46 +69,67 @@
         .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
         .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
         
-        /* Sidebar Footer */
         .sidebar-footer {
             padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; line-height: 1.5;
             border-top: 1px solid #e2e8f0; background: var(--bg-light); flex-shrink: 0; text-align: center;
         }
 
         /* --- Main Content Styles --- */
-        #main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        #main-content { flex: 1; padding: 30px; overflow-y: auto; width: 100%; box-sizing: border-box; }
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
         }
-        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; flex-wrap: wrap; gap: 10px; }
         .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
         .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
         
         /* UI Elements */
         .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
-        .ee-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-weight: 600; margin-bottom: 15px; }
+        .ee-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-weight: 600; margin-bottom: 15px; box-sizing: border-box; }
         .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
         .chart-box { position: relative; height: 400px; width: 100%; }
         .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
         .evidence-card { background: var(--bg-light); padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
         .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
         .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
-        
-        /* Global PDF Disclaimer */
-        .pdf-disclaimer {
-            margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; 
-            padding-top: 10px; line-height: 1.4;
+        .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            #mobile-header { display: flex; }
+            #sidebar {
+                position: fixed; top: 0; bottom: 0; left: 0;
+                transform: translateX(-100%); /* Hidden by default */
+                height: 100vh;
+            }
+            #sidebar.open { transform: translateX(0); }
+            .sidebar-header { display: none; } /* Replaced by mobile header */
+            
+            #main-content { padding: 15px; }
+            .widget-container { padding: 20px; }
+            
+            /* Stack controls on top of the chart */
+            .grid { grid-template-columns: 1fr; gap: 20px; }
+            .chart-box { height: 300px; }
         }
     </style>
 </head>
 <body>
+    <div id="mobile-header">
+        <div>OutcomeLogic™</div>
+        <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+    </div>
+    
+    <div id="mobile-overlay" onclick="toggleSidebar()"></div>
+
     <div id="sidebar">
         <div class="sidebar-header">OutcomeLogic™</div>
         <div id="sidebar-nav"></div>
         <div class="sidebar-footer">
-            <strong>v4.1 Clinical Build</strong><br>
+            <strong>v4.2 Clinical Build</strong><br>
             &copy; 2026 Rahman Medical Services Limited.<br>Confidential & Proprietary.
         </div>
     </div>
