@@ -416,7 +416,7 @@ const TRIAL_DATA = {
         `,
         footer_note: "Clinical synthesis of patient-reported metrics via the Duke Activity Status Index (DASI). (c) 2026 Rahman Medical Services."
     },
-    recovery: {
+   recovery: {
         category: "Peri-operative",
         type: "calculated",
         shortName: "Recovery Passport",
@@ -425,22 +425,19 @@ const TRIAL_DATA = {
         source: "ERAS Society Outcomes Database",
         color: "#10b981", 
         xAxisLabels: ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 28', '6 Weeks'],
-        
-        // The Engine will pick one of these baselines based on the dropdown
         baselines: {
-            lap_minor: [5, 20, 60, 85, 95, 100, 100],  // e.g., Hernia, Lap Chole
-            lap_major: [0, 10, 30, 60, 80, 90, 95],    // e.g., Fundoplication, Sleeve
-            open_major: [0, 0, 10, 25, 45, 60, 80]     // e.g., Open Esophagectomy / Bowel
+            lap_minor: [5, 20, 60, 85, 95, 100, 100], 
+            lap_major: [0, 10, 30, 60, 80, 90, 95],   
+            open_major: [0, 0, 10, 25, 45, 60, 80]    
         },
-
         controlsHTML: `
             <label class="nav-label">Procedure Conducted</label>
             <select id="rec-surgery" class="ee-select" onchange="runCalculation('recovery')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-weight:bold; color:var(--brand-navy);">
                 <option value="lap_minor">Lap Cholecystectomy / Hernia</option>
                 <option value="lap_major">Lap Fundoplication / Bariatric</option>
-                <option value="open_major">Major Open (Esophagectomy/Resection)</option>
+                <option value="open_major">Major Open (Esophagectomy/Bowel)</option>
             </select>
-
+            
             <label class="nav-label">Occupational / Daily Load</label>
             <select id="rec-job" class="ee-select" onchange="runCalculation('recovery')" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
                 <option value="1.0">Desk / Sedentary</option>
@@ -453,12 +450,27 @@ const TRIAL_DATA = {
                 <option value="1.1">High (METs > 4)</option>
                 <option value="0.8">Low (METs < 4) / Frail</option>
             </select>
-
-            <div style="margin-top:20px; padding:15px; background:white; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
-                <div id="rec-milestone" style="font-size:1.8rem; font-weight:800; color:#10b981;">Day 14</div>
-                <div class="stat-label">Est. 50% Functional Recovery</div>
+            
+            <label class="nav-label" style="margin-top:15px; border-bottom:1px solid #cbd5e1; padding-bottom:5px;">Practical Milestones</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                <div style="background:white; padding:10px; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:bold;">Driving</div>
+                    <div id="rec-driving" style="font-size:1.1rem; font-weight:800; color:#10b981; margin-top:5px;">--</div>
+                </div>
+                <div style="background:white; padding:10px; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:bold;">Lifting >10kg</div>
+                    <div id="rec-lifting" style="font-size:1.1rem; font-weight:800; color:#10b981; margin-top:5px;">--</div>
+                </div>
+                <div style="background:white; padding:10px; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:bold;">Intimacy</div>
+                    <div id="rec-sex" style="font-size:1.1rem; font-weight:800; color:#10b981; margin-top:5px;">--</div>
+                </div>
+                <div style="background:white; padding:10px; border-radius:8px; border:1px solid #e2e8f0; text-align:center;">
+                    <div style="font-size:0.7rem; color:#64748b; text-transform:uppercase; font-weight:bold;">Alcohol</div>
+                    <div id="rec-alcohol" style="font-size:0.9rem; font-weight:800; color:#10b981; margin-top:5px;">--</div>
+                </div>
             </div>
         `,
-        footer_note: "Predictive model indexing ERAS protocol baselines against occupational load and pre-operative functional reserve."
+        footer_note: "Milestones are clinical estimates. Driving requires ability to perform an emergency stop without pain distraction. Alcohol must be avoided while on prescription opioids."
     }
 };
