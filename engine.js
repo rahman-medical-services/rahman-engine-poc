@@ -1,12 +1,10 @@
 /**
  * OutcomeLogic™ Universal Clinical Engine v3.0
  * (c) 2026 Rahman Medical Services Limited. All Rights Reserved.
- * Core Logic: Multi-Mode Rendering, Power Law Math, Predictive Baselines, PDF Generation.
  */
 
 let currentChart = null;
 
-// 1. DYNAMIC SIDEBAR BUILDER
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
     if (!nav) return;
@@ -32,7 +30,6 @@ function initializeSidebar() {
     });
 }
 
-// 2. MULTI-MODE WIDGET LOADER
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
@@ -41,7 +38,6 @@ function loadWidget(type, event) {
     if (event) event.target.classList.add('active');
 
     if (trial.type === "passport") {
-        // --- PASSPORT NARRATIVE VIEW ---
         mount.innerHTML = `
             <div class="widget-container" id="printable-area">
                 <div class="header-flex">
@@ -65,7 +61,6 @@ function loadWidget(type, event) {
             </div>
         `;
     } else {
-        // --- CALCULATED MATH & CHART VIEW ---
         mount.innerHTML = `
             <div class="widget-container" id="printable-area">
                 <div class="header-flex">
@@ -89,7 +84,6 @@ function loadWidget(type, event) {
     }
 }
 
-// 3. READINESS PASSPORT LOGIC (NARRATIVE GENERATION)
 function processReadiness() {
     let dasi = 0;
     document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
@@ -106,7 +100,6 @@ function processReadiness() {
     
     if (pHTML === "<strong>Optimisation Requirements:</strong><br>") pHTML = "No specific pre-operative optimisation pillars identified at this stage.";
 
-    // UI Updates
     document.getElementById('initial-message').style.display = 'none';
     document.getElementById('web-narrative-display').style.display = 'block';
     
@@ -121,7 +114,6 @@ function processReadiness() {
     document.getElementById('out-advice').innerText = advice;
 }
 
-// 4. CLINICAL MATH ENGINE (Charts & Trajectories)
 function runCalculation(type) {
     const trial = TRIAL_DATA[type];
     if (!trial) return;
@@ -152,6 +144,50 @@ function runCalculation(type) {
         secondaryData = trial.baseCrossover.map(v => v * 100);
         labelY = "Surgery Probability (%)";
     }
+    else if (type === 'reflux') {
+        const riskMod = (document.getElementById('ref-bmi')?.checked ? 0.90 : 1.0) * (document.getElementById('ref-hernia')?.checked ? 0.85 : 1.0) * (parseFloat(document.getElementById('ref-age')?.value) || 1.0);
+        primaryData = trial.baseline_surg.map(s => s * riskMod);
+        secondaryData = trial.baseline_med;
+        labelY = "Probability off PPI Medication (%)";
+    }
+    else if (type === 'coda') {
+        const stonePresent = document.getElementById('coda-stone')?.checked;
+        const abxFailureMod = stonePresent ? 0.65 : 1.0; 
+        primaryData = trial.baseline_abx.map((s, i) => i === 0 ? 100 : s * abxFailureMod);
+        secondaryData = trial.baseline_surg; 
+        labelY = "Probability of Avoiding Surgery (%)";
+    }
+    else if (type === 'protect') {
+        
+        const gleasonHR = parseFloat(document.getElementById('pro-gleason')?.value) || 1.0;
+        const psaHR = parseFloat(document.getElementById('pro-psa')?.value) || 1.0;
+        const totalHR = gleasonHR * psaHR;
+        primaryData = trial.baseline_surv.map(s => Math.pow(s/100, totalHR) * 100);
+        secondaryData = trial.baseline_surg.map(s => Math.pow(s/100, totalHR) * 100);
+        labelY = "Metastasis-Free Survival (%)";
+    }
+    else if (type === 'bariatrics') {
+        
+
+[Image of Roux-en-Y gastric bypass vs sleeve gastrectomy]
+
+        const surgType = document.getElementById('bar-surg')?.value || 'bypass';
+        const diabMod = document.getElementById('bar-diab')?.checked ? 0.95 : 1.0; 
+        const superObeseMod = document.getElementById('bar-bmi')?.checked ? 0.90 : 1.0;
+
+        const baseArray = surgType === 'bypass' ? trial.baseline_bypass : trial.baseline_sleeve;
+        const comparator = surgType === 'bypass' ? trial.baseline_sleeve : trial.baseline_bypass;
+
+        primaryData = baseArray.map(s => s * diabMod * superObeseMod);
+        secondaryData = comparator; 
+        labelY = "Total Body Weight Loss (TBWL %)";
+    }
+    else if (type === 'topkat') {
+        const activityHR = parseFloat(document.getElementById('top-age')?.value) || 1.0;
+        primaryData = trial.baseline_ukr.map(s => Math.pow(s/100, activityHR) * 100);
+        secondaryData = trial.baseline_tkr.map(s => Math.pow(s/100, activityHR) * 100);
+        labelY = "Implant Survival - Free from Revision (%)";
+    }
     else if (type === 'recovery') {
         const surgeryType = document.getElementById('rec-surgery')?.value || 'lap_minor';
         const jobFactor = parseFloat(document.getElementById('rec-job')?.value) || 1.0;
@@ -177,12 +213,10 @@ function runCalculation(type) {
     renderChart('mainChart', primaryData, secondaryData, trial.color, labelY, trial.xAxisLabels);
 }
 
-// 5. CHARTING CORE
 function renderChart(id, primary, secondary, color, labelY, xLabels) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
     
-    // Fallback labels if none provided
     const safeLabels = xLabels || primary.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
 
     currentChart = new Chart(ctx, {
@@ -194,7 +228,7 @@ function renderChart(id, primary, secondary, color, labelY, xLabels) {
                     label: 'Selected Patient Scenario', 
                     data: primary, 
                     borderColor: color, 
-                    backgroundColor: `${color}20`, // Add slight transparency for fill
+                    backgroundColor: `${color}20`, 
                     borderWidth: 4, 
                     fill: true, 
                     tension: 0.3,
@@ -202,7 +236,7 @@ function renderChart(id, primary, secondary, color, labelY, xLabels) {
                     pointRadius: 4
                 },
                 { 
-                    label: 'Trial Average / Baseline', 
+                    label: 'Trial Average / Comparator', 
                     data: secondary, 
                     borderColor: '#cbd5e1', 
                     borderDash: [5, 5], 
@@ -227,7 +261,6 @@ function renderChart(id, primary, secondary, color, labelY, xLabels) {
     });
 }
 
-// 6. PDF EXPORT HOOK
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
@@ -255,5 +288,4 @@ async function exportToPDF(filename) {
     }
 }
 
-// INITIALISE
 window.onload = initializeSidebar;
