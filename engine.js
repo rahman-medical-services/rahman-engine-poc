@@ -1,8 +1,8 @@
 /* ==========================================================================
- * OutcomeLogic™ Universal Clinical Engine v4.2 (V2.0 Commercial Build)
+ * OutcomeLogic™ Universal Clinical Engine v4.3 (V2.0 Commercial Build)
  * (c) 2026 OutcomeLogic Ltd / Rahman Medical Services Limited. 
  * All Rights Reserved. PROPRIETARY CLINICAL TRIAGE MODELS.
- * Updates: Executive ROI Dashboard, Qualtrics API Bridge, Mobile Responsiveness, Landscape PDF, Dynamic Chart Hiding
+ * Updates: Executive ROI Dashboard, Qualtrics API Bridge, Safe PDF Export, Mobile Menu Fix
  * ========================================================================== */
 
 let currentChart = null;
@@ -321,49 +321,33 @@ async function exportToPDF(filename) {
     const originalText = btn.innerText;
     
     // 1. UI Feedback & Hide Button
-    btn.innerText = "Generating PDF...";
+    btn.innerText = "Generating...";
     btn.disabled = true;
-    btn.style.display = 'none'; // Don't print the button on the PDF
+    btn.style.display = 'none'; // Hides button from the PDF
     
-    // 2. Save the original layout to restore later
-    const origStyle = element.getAttribute('style') || '';
-    
-    // 3. Force the window to the absolute top-left
+    // Scroll to top to ensure clean capture baseline
     window.scrollTo(0, 0);
 
-    // 4. Force the live DOM into a perfect, un-centered desktop layout
-    element.style.cssText = origStyle + '; ' + 
-        'width: 1000px !important; ' + 
-        'max-width: 1000px !important; ' + 
-        'margin: 0 !important; ' + 
-        'padding: 20px !important; ' + // This padding acts as the PDF margin
-        'background: white !important; ' + 
-        'position: absolute !important; ' + 
-        'left: 0 !important; ' + 
-        'top: 0 !important;';
+    // 2. Safely store ONLY the specific styles we are about to change
+    const origWidth = element.style.width;
+    const origMaxWidth = element.style.maxWidth;
+    const origMargin = element.style.margin;
+    
+    // 3. Force desktop width temporarily for the camera
+    element.style.width = '1100px';
+    element.style.maxWidth = '1100px';
+    element.style.margin = '0';
 
-    // 5. CRITICAL: Wait 250ms. This gives Chart.js time to instantly redraw 
-    // to the new 1000px width without exploding out of the box.
-    await new Promise(resolve => setTimeout(resolve, 250));
-
-    // 6. PDF Configuration
+    // 4. Clean, standard PDF configuration
     const opt = {
-        margin: 0, // Set to 0 to kill the blank second page (we use CSS padding instead)
+        margin: 10, 
         filename: filename + '-Evidence-Summary.pdf',
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { 
-            scale: 2, 
-            useCORS: true, 
-            windowWidth: 1000, // Matches the forced CSS width
-            scrollX: 0,
-            scrollY: 0
-        },
-        pagebreak: { mode: 'avoid-all' }, // Strictly forbids page splitting
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
     
     try { 
-        // 7. Generate and Save
         await html2pdf().set(opt).from(element).save(); 
     } 
     catch (err) { 
@@ -371,8 +355,11 @@ async function exportToPDF(filename) {
         alert("Failed to generate PDF. Please check console for details."); 
     } 
     finally { 
-        // 8. Instantly restore the UI back to normal
-        element.setAttribute('style', origStyle);
+        // 5. Instantly restore the UI back to normal
+        element.style.width = origWidth;
+        element.style.maxWidth = origMaxWidth;
+        element.style.margin = origMargin;
+        
         btn.style.display = 'block';
         btn.innerText = originalText; 
         btn.disabled = false; 
@@ -383,14 +370,31 @@ async function exportToPDF(filename) {
 window.onload = function() {
     initializeSidebar();
     
-    // Check if Qualtrics is asking for a specific model via URL
+    // --- HAMBURGER MENU BULLETPROOF FIX ---
+    let hamburger = document.getElementById('mobile-menu-btn');
+    if (!hamburger) {
+        hamburger = document.createElement('button');
+        hamburger.id = 'mobile-menu-btn';
+        hamburger.innerHTML = '☰';
+        hamburger.onclick = toggleSidebar;
+        document.body.appendChild(hamburger);
+    }
+    // Force it to the top right corner, above everything else
+    hamburger.style.cssText = 'position: fixed; top: 15px; right: 15px; z-index: 99999; background: #0f172a; color: white; border: none; padding: 8px 15px; font-size: 24px; border-radius: 6px; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);';
+    
+    // Add a media query to ensure it only shows on mobile screens
+    const style = document.createElement('style');
+    style.innerHTML = `@media (max-width: 900px) { #mobile-menu-btn { display: block !important; } }`;
+    document.head.appendChild(style);
+    // --------------------------------------
+
     const urlParams = new URLSearchParams(window.location.search);
     const modelTarget = urlParams.get('model');
 
     if (modelTarget && TRIAL_DATA[modelTarget]) {
-        loadDataFromQualtrics(); // Loads the specific widget silently for the iframe
+        loadDataFromQualtrics(); 
     } else {
-        renderWelcomeScreen(); // Loads the beautiful Executive Dashboard for direct visitors
+        renderWelcomeScreen(); 
     }
 };
 
