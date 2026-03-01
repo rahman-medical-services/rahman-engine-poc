@@ -1,7 +1,9 @@
-/**
- * OutcomeLogic™ Universal Clinical Engine v4.2
- * Updates: Mobile Responsiveness, Sidebar Overlay, Auto-Collapse
- */
+/* ==========================================================================
+ * OutcomeLogic™ Universal Clinical Engine v4.2 (V2.0 Commercial Build)
+ * (c) 2026 OutcomeLogic Ltd / Rahman Medical Services Limited. 
+ * All Rights Reserved. PROPRIETARY CLINICAL TRIAGE MODELS.
+ * Updates: Mobile Responsiveness, Sidebar Overlay, Auto-Collapse, Qualtrics API Bridge
+ * ========================================================================== */
 
 let currentChart = null;
 
@@ -11,6 +13,50 @@ const GLOBAL_DISCLAIMER = `
         &copy; 2026 Rahman Medical Services Limited. All Rights Reserved.
     </div>
 `;
+
+// --- QUALTRICS API BRIDGE (NEW V2.0 LOGIC) ---
+
+function loadDataFromQualtrics() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelTarget = urlParams.get('model');
+
+    // If a model is specified in the URL, trigger the automated ingestion
+    if (modelTarget && TRIAL_DATA[modelTarget]) {
+        console.log(`OutcomeLogic: Loading ${modelTarget} model via Qualtrics API...`);
+
+        // 1. Mount the widget into the DOM first so the HTML inputs exist
+        loadWidget(modelTarget, null);
+
+        // 2. Auto-fill the inputs based on URL parameters
+        // Example URL: ?model=inca&ee-age=old&ee-heavy=true
+        urlParams.forEach((value, key) => {
+            if (key !== 'model') {
+                const inputElement = document.getElementById(key);
+                if (inputElement) {
+                    if (inputElement.type === 'checkbox') {
+                        inputElement.checked = (value === 'true' || value === 'on');
+                    } else {
+                        inputElement.value = value;
+                    }
+                }
+            }
+        });
+
+        // 3. Run the math immediately with the new pre-filled data
+        runCalculation(modelTarget);
+    }
+}
+
+function exportToQualtrics(summaryText) {
+    if (!summaryText) return;
+    console.log("OutcomeLogic: Exporting clinical synthesis to Qualtrics Mail Merge...");
+    window.parent.postMessage({ 
+        type: 'OUTCOME_LOGIC_RESULT', 
+        summaryText: summaryText 
+    }, '*');
+}
+
+// --- ORIGINAL CORE ENGINE ---
 
 // Mobile Menu Toggle
 function toggleSidebar() {
@@ -130,6 +176,11 @@ function runCalculation(type) {
         if (results.primaryData) {
             renderChart('mainChart', results, trial.color, trial.xAxisLabels);
         }
+
+        // NEW V2.0 LOGIC: Automatically export the synthesis to Qualtrics if the math generated one
+        if (results.synthesisText) {
+            exportToQualtrics(results.synthesisText);
+        }
     }
 }
 
@@ -204,4 +255,8 @@ async function exportToPDF(filename) {
     finally { btn.innerText = originalText; btn.disabled = false; element.style.backgroundColor = ""; }
 }
 
-window.onload = initializeSidebar;
+// Ensure both the UI and the Qualtrics API load on startup
+window.onload = function() {
+    initializeSidebar();
+    loadDataFromQualtrics();
+};
