@@ -2,7 +2,7 @@
  * OutcomeLogic™ Universal Clinical Engine v4.2 (V2.0 Commercial Build)
  * (c) 2026 OutcomeLogic Ltd / Rahman Medical Services Limited. 
  * All Rights Reserved. PROPRIETARY CLINICAL TRIAGE MODELS.
- * Updates: Executive ROI Dashboard, Qualtrics API Bridge, Mobile Responsiveness
+ * Updates: Executive ROI Dashboard, Qualtrics API Bridge, Mobile Responsiveness, Landscape PDF, Dynamic Chart Hiding
  * ========================================================================== */
 
 let currentChart = null;
@@ -244,8 +244,14 @@ function runCalculation(type) {
             outputBox.style.display = 'none';
         }
 
+        const chartMount = document.getElementById('chart-mount');
         if (results.primaryData) {
+            // Un-hide the chart box if there is data to chart
+            if (chartMount) chartMount.style.display = 'block';
             renderChart('mainChart', results, trial.color, trial.xAxisLabels);
+        } else {
+            // Hide the chart box completely so dashboard meters look clean
+            if (chartMount) chartMount.style.display = 'none';
         }
 
         // V2.0 LOGIC: Export synthesis to Qualtrics if available
@@ -306,26 +312,45 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
+// --- PDF GENERATION ENGINE ---
+
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
     const originalText = btn.innerText;
     
+    // UI Feedback while generating
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
+    
+    // Force a clean white background for the printout
+    const originalBackground = element.style.backgroundColor;
     element.style.backgroundColor = "white";
 
+    // The PDF Configuration Options
     const opt = {
-        margin: [15, 12, 15, 12],
+        margin: [15, 15, 15, 15], // Top, Left, Bottom, Right
         filename: filename + '-Evidence-Summary.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, windowWidth: 1000 }, /* Force desktop layout for PDF even on mobile */
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        // Force a wide desktop layout (1200px) so charts aren't squished
+        html2canvas: { scale: 2, useCORS: true, windowWidth: 1200 }, 
+        // Switch to landscape to accommodate the wide layout
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
     
-    try { await html2pdf().set(opt).from(element).save(); } 
-    catch (err) { alert("Failed to generate PDF."); } 
-    finally { btn.innerText = originalText; btn.disabled = false; element.style.backgroundColor = ""; }
+    try { 
+        await html2pdf().set(opt).from(element).save(); 
+    } 
+    catch (err) { 
+        console.error("PDF Generation Error:", err);
+        alert("Failed to generate PDF. Please check console for details."); 
+    } 
+    finally { 
+        // Restore UI
+        btn.innerText = originalText; 
+        btn.disabled = false; 
+        element.style.backgroundColor = originalBackground; 
+    }
 }
 
 // Ensure proper loading order and URL parameter checking
@@ -342,3 +367,19 @@ window.onload = function() {
         renderWelcomeScreen(); // Loads the beautiful Executive Dashboard for direct visitors
     }
 };
+
+// --- DYNAMIC URL LISTENER ---
+// Ensures the app responds if parameters change without a full page reload
+
+window.addEventListener('popstate', function() {
+    console.log("OutcomeLogic: Detected URL change, re-evaluating parameters...");
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelTarget = urlParams.get('model');
+
+    if (modelTarget && TRIAL_DATA[modelTarget]) {
+        loadDataFromQualtrics(); 
+    } else {
+        renderWelcomeScreen();
+    }
+});
