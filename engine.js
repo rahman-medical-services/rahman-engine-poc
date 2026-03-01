@@ -320,26 +320,34 @@ async function exportToPDF(filename) {
     const btn = event.target;
     const originalText = btn.innerText;
     
-    // UI Feedback while generating
+    // UI Feedback
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
 
-    // Force a clean white background for the printout
-    const originalBackground = element.style.backgroundColor;
-    element.style.backgroundColor = "white";
-    
-    // Force browser to top-left to prevent html2canvas offset bugs
-    window.scrollTo(0, 0);
-
     const opt = {
-        margin: [10, 10, 10, 10], // Tighter 10mm margins to keep it on one page
+        margin: [10, 10, 10, 10], // Tighter 10mm margins
         filename: filename + '-Evidence-Summary.pdf',
         image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
             scale: 2, 
             useCORS: true, 
-            scrollY: 0, 
-            scrollX: 0 
+            windowWidth: 1200, // Tricks the invisible clone into using desktop CSS
+            onclone: function (clonedDoc) {
+                // This modifies the INVISIBLE cloned document, protecting your live mobile UI
+                const clonedArea = clonedDoc.getElementById('printable-area');
+                const clonedBody = clonedDoc.body;
+                
+                // Force the cloned body to be wider than the physical phone screen
+                clonedBody.style.width = '1200px';
+                clonedDoc.documentElement.style.width = '1200px';
+                
+                // Perfect the formatting of the cloned target area
+                clonedArea.style.width = '1100px';
+                clonedArea.style.maxWidth = '1100px';
+                clonedArea.style.margin = '0';
+                clonedArea.style.padding = '20px';
+                clonedArea.style.backgroundColor = 'white';
+            }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
@@ -354,7 +362,6 @@ async function exportToPDF(filename) {
     finally { 
         btn.innerText = originalText; 
         btn.disabled = false; 
-        element.style.backgroundColor = originalBackground;
     }
 }
 
