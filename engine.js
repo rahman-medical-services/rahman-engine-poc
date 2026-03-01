@@ -323,18 +323,30 @@ async function exportToPDF(filename) {
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
     
-    // Force a clean white background for the printout
+    // 1. Save original styles so we can restore them immediately after
     const originalBackground = element.style.backgroundColor;
-    element.style.backgroundColor = "white";
+    const originalMargin = element.style.margin;
+    const originalMaxWidth = element.style.maxWidth;
+    const originalWidth = element.style.width;
 
-    // The PDF Configuration Options
+    // 2. Force a clean, left-aligned, fixed-width layout for the "camera"
+    element.style.backgroundColor = "white";
+    element.style.margin = "0";          // Kills the auto-centering to prevent left cut-off
+    element.style.maxWidth = "none";     // Overrides responsive constraints
+    element.style.width = "1100px";      // Forces the exact width of our virtual window
+
+    // 3. The PDF Configuration Options
     const opt = {
-        margin: [15, 15, 15, 15], // Top, Left, Bottom, Right
+        margin: 8, // Tighter 8mm margin to prevent the blank second page spillover
         filename: filename + '-Evidence-Summary.pdf',
         image: { type: 'jpeg', quality: 0.98 },
-        // Force a wide desktop layout (1200px) so charts aren't squished
-        html2canvas: { scale: 2, useCORS: true, windowWidth: 1200 }, 
-        // Switch to landscape to accommodate the wide layout
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            windowWidth: 1100, // Perfectly matches the element width above
+            scrollX: 0,
+            scrollY: 0
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
     
@@ -346,10 +358,13 @@ async function exportToPDF(filename) {
         alert("Failed to generate PDF. Please check console for details."); 
     } 
     finally { 
-        // Restore UI
+        // 4. Instantly restore the UI so the user doesn't see a glitch
         btn.innerText = originalText; 
         btn.disabled = false; 
         element.style.backgroundColor = originalBackground; 
+        element.style.margin = originalMargin;
+        element.style.maxWidth = originalMaxWidth;
+        element.style.width = originalWidth;
     }
 }
 
