@@ -323,6 +323,9 @@ async function exportToPDF(filename) {
     // UI Feedback
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
+    
+    // Scroll to top to ensure clean capture baseline
+    window.scrollTo(0, 0);
 
     const opt = {
         margin: [10, 10, 10, 10], // Tighter 10mm margins
@@ -331,29 +334,45 @@ async function exportToPDF(filename) {
         html2canvas: { 
             scale: 2, 
             useCORS: true, 
-            windowWidth: 1200, // Tricks the invisible clone into using desktop CSS
+            windowWidth: 1200,
+            scrollY: 0,
+            scrollX: 0,
             onclone: function (clonedDoc) {
-                // This modifies the INVISIBLE cloned document, protecting your live mobile UI
                 const clonedArea = clonedDoc.getElementById('printable-area');
-                const clonedBody = clonedDoc.body;
                 
-                // Force the cloned body to be wider than the physical phone screen
-                clonedBody.style.width = '1200px';
-                clonedDoc.documentElement.style.width = '1200px';
+                // 1. Strip all body margins that cause offsets
+                clonedDoc.body.style.margin = '0';
+                clonedDoc.body.style.padding = '0';
                 
-                // Perfect the formatting of the cloned target area
+                // 2. Pin the cloned area to the absolute top-left corner
+                clonedArea.style.position = 'absolute';
+                clonedArea.style.top = '0';
+                clonedArea.style.left = '0';
+                
+                // 3. Force the perfect desktop width
                 clonedArea.style.width = '1100px';
                 clonedArea.style.maxWidth = '1100px';
-                clonedArea.style.margin = '0';
+                clonedArea.style.margin = '0'; // Kills auto-centering
                 clonedArea.style.padding = '20px';
                 clonedArea.style.backgroundColor = 'white';
+                
+                // 4. Hide the PDF download button in the actual document
+                const printBtn = clonedArea.querySelector('button');
+                if (printBtn) printBtn.style.display = 'none';
             }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
     
     try { 
-        await html2pdf().set(opt).from(element).save(); 
+        // Intercept the process to brute-force a single page
+        await html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+            const totalPages = pdf.internal.getNumberOfPages();
+            // If the height bled over and created extra pages, delete them all
+            for (let i = totalPages; i > 1; i--) {
+                pdf.deletePage(i);
+            }
+        }).save(); 
     } 
     catch (err) { 
         console.error("PDF Generation Error:", err);
