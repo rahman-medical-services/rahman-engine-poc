@@ -320,65 +320,60 @@ async function exportToPDF(filename) {
     const btn = event.target;
     const originalText = btn.innerText;
     
-    // UI Feedback
+    // 1. UI Feedback & Hide Button
     btn.innerText = "Generating PDF...";
     btn.disabled = true;
+    btn.style.display = 'none'; // Don't print the button on the PDF
     
-    // Scroll to top to ensure clean capture baseline
+    // 2. Save the original layout to restore later
+    const origStyle = element.getAttribute('style') || '';
+    
+    // 3. Force the window to the absolute top-left
     window.scrollTo(0, 0);
 
+    // 4. Force the live DOM into a perfect, un-centered desktop layout
+    element.style.cssText = origStyle + '; ' + 
+        'width: 1000px !important; ' + 
+        'max-width: 1000px !important; ' + 
+        'margin: 0 !important; ' + 
+        'padding: 20px !important; ' + // This padding acts as the PDF margin
+        'background: white !important; ' + 
+        'position: absolute !important; ' + 
+        'left: 0 !important; ' + 
+        'top: 0 !important;';
+
+    // 5. CRITICAL: Wait 250ms. This gives Chart.js time to instantly redraw 
+    // to the new 1000px width without exploding out of the box.
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    // 6. PDF Configuration
     const opt = {
-        margin: [10, 10, 10, 10], // Tighter 10mm margins
+        margin: 0, // Set to 0 to kill the blank second page (we use CSS padding instead)
         filename: filename + '-Evidence-Summary.pdf',
         image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
             scale: 2, 
             useCORS: true, 
-            windowWidth: 1200,
-            scrollY: 0,
+            windowWidth: 1000, // Matches the forced CSS width
             scrollX: 0,
-            onclone: function (clonedDoc) {
-                const clonedArea = clonedDoc.getElementById('printable-area');
-                
-                // 1. Strip all body margins that cause offsets
-                clonedDoc.body.style.margin = '0';
-                clonedDoc.body.style.padding = '0';
-                
-                // 2. Pin the cloned area to the absolute top-left corner
-                clonedArea.style.position = 'absolute';
-                clonedArea.style.top = '0';
-                clonedArea.style.left = '0';
-                
-                // 3. Force the perfect desktop width
-                clonedArea.style.width = '1100px';
-                clonedArea.style.maxWidth = '1100px';
-                clonedArea.style.margin = '0'; // Kills auto-centering
-                clonedArea.style.padding = '20px';
-                clonedArea.style.backgroundColor = 'white';
-                
-                // 4. Hide the PDF download button in the actual document
-                const printBtn = clonedArea.querySelector('button');
-                if (printBtn) printBtn.style.display = 'none';
-            }
+            scrollY: 0
         },
+        pagebreak: { mode: 'avoid-all' }, // Strictly forbids page splitting
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
     };
     
     try { 
-        // Intercept the process to brute-force a single page
-        await html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
-            const totalPages = pdf.internal.getNumberOfPages();
-            // If the height bled over and created extra pages, delete them all
-            for (let i = totalPages; i > 1; i--) {
-                pdf.deletePage(i);
-            }
-        }).save(); 
+        // 7. Generate and Save
+        await html2pdf().set(opt).from(element).save(); 
     } 
     catch (err) { 
         console.error("PDF Generation Error:", err);
         alert("Failed to generate PDF. Please check console for details."); 
     } 
     finally { 
+        // 8. Instantly restore the UI back to normal
+        element.setAttribute('style', origStyle);
+        btn.style.display = 'block';
         btn.innerText = originalText; 
         btn.disabled = false; 
     }
