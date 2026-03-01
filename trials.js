@@ -761,51 +761,82 @@ const TRIAL_DATA = {
         }
     },
 
+    // ---------------------------------------------------------
+    // UNIVERSAL APPENDICITIS PATHWAY (Adult & Paediatric)
+    // ---------------------------------------------------------
     appendicitis: {
-        category: "Clinical Practice Tools", type: "calculated", shortName: "Appendicitis (RIFT)",
-        title: "Adult Appendicitis Scoring", subtitle: "AIR, AAS, and RIFT Consensus",
-        source: "WSES 2020 / RIFT Study Group", color: "#eab308",
+        category: "Clinical Practice Tools", type: "calculated", shortName: "Appendicitis (Universal)",
+        title: "Universal Appendicitis Triage", subtitle: "Dynamic routing to RIFT (Adult) or Shera (Paediatric)",
+        source: "WSES 2020 & RIFT Study Group", color: "#eab308",
         controlsHTML: `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                    <label class="nav-label">Age</label>
-                    <input type="number" id="ap-age" class="ee-select" value="25" min="16" oninput="runCalculation('appendicitis')">
-                    
-                    <label class="nav-label">Gender</label>
-                    <select id="ap-gender" class="ee-select" onchange="runCalculation('appendicitis')">
-                        <option value="Female">Female</option><option value="Male">Male</option>
-                    </select>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <div style="background:#f8fafc; padding:15px; border-radius:8px; border: 1px solid #e2e8f0;">
+                    <label class="nav-label" style="margin-top:0; color:var(--brand-navy);">1. Demographics & Timeline</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top:10px;">
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">Age</label>
+                            <input type="number" id="ap-age" class="ee-select" value="25" min="5" oninput="runCalculation('appendicitis')">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">Gender</label>
+                            <select id="ap-gender" class="ee-select" onchange="runCalculation('appendicitis')">
+                                <option value="Female">Female</option><option value="Male">Male</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">Symptoms</label>
+                            <select id="ap-dur" class="ee-select" onchange="runCalculation('appendicitis')">
+                                <option value="<24">< 24 Hrs</option><option value=">=24">≥ 24 Hrs</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-                    <label class="nav-label">Duration of Symptoms</label>
-                    <select id="ap-dur" class="ee-select" onchange="runCalculation('appendicitis')">
-                        <option value="<24">Under 24 Hours</option><option value=">=24">24 Hours or More</option>
-                    </select>
-
-                    <label class="nav-label">Bloods</label>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" id="ap-wcc" class="ee-select" placeholder="WCC" value="7" oninput="runCalculation('appendicitis')">
-                        <input type="number" id="ap-neuts" class="ee-select" placeholder="Neuts" value="5" oninput="runCalculation('appendicitis')">
-                        <input type="number" id="ap-crp" class="ee-select" placeholder="CRP" value="0" oninput="runCalculation('appendicitis')">
+                <div style="background:#f8fafc; padding:15px; border-radius:8px; border: 1px solid #e2e8f0;">
+                    <label class="nav-label" style="margin-top:0; color:var(--brand-navy);">2. Laboratory Biomarkers</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top:10px;">
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">WCC (10⁹/L)</label>
+                            <input type="number" id="ap-wcc" class="ee-select" value="7" step="0.1" oninput="runCalculation('appendicitis')">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">Neutrophils</label>
+                            <input type="number" id="ap-neuts" class="ee-select" value="5" step="0.1" oninput="runCalculation('appendicitis')">
+                        </div>
+                        <div>
+                            <label style="font-size:0.75rem; font-weight:bold; color:#64748b; text-transform:uppercase;">CRP (mg/L)</label>
+                            <input type="number" id="ap-crp" class="ee-select" value="2" oninput="runCalculation('appendicitis')">
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="nav-label">Clinical Presentation</label>
-                    <label class="ee-check-group"><input type="checkbox" id="ap-vomit" onchange="runCalculation('appendicitis')"> Vomiting</label>
-                    <label class="ee-check-group"><input type="checkbox" id="ap-migrat" onchange="runCalculation('appendicitis')"> Migratory Pain</label>
-                    <label class="ee-check-group"><input type="checkbox" id="ap-temp" onchange="runCalculation('appendicitis')"> Temp ≥ 38.5°C</label>
-                    <label class="ee-check-group"><input type="checkbox" id="ap-rifp" checked onchange="runCalculation('appendicitis')"> RIF Pain</label>
-                    <label class="ee-check-group"><input type="checkbox" id="ap-rift" checked onchange="runCalculation('appendicitis')"> RIF Tenderness</label>
+                    <label class="nav-label">3. Clinical Presentation</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-rifp" checked onchange="runCalculation('appendicitis')"> RIF Pain</label>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-rift" checked onchange="runCalculation('appendicitis')"> RIF Tenderness</label>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-migrat" onchange="runCalculation('appendicitis')"> Migratory Pain</label>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-temp" onchange="runCalculation('appendicitis')"> Pyrexia (≥ 38.5°C)</label>
+                        </div>
+                        <div>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-vomit" onchange="runCalculation('appendicitis')"> Vomiting</label>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-nausea" onchange="runCalculation('appendicitis')"> Nausea / Anorexia</label>
+                            <label class="ee-check-group"><input type="checkbox" id="ap-cough" onchange="runCalculation('appendicitis')"> RIF Pain on Cough/Hop</label>
+                        </div>
+                    </div>
                     
-                    <label class="nav-label" style="margin-top:10px;">Rebound Tenderness</label>
+                    <label class="nav-label" style="margin-top:15px;">Adult Rebound Tenderness</label>
                     <select id="ap-rebound" class="ee-select" onchange="runCalculation('appendicitis')">
                         <option value="0">None</option><option value="1">Mild</option><option value="2">Moderate</option><option value="3">Severe</option>
                     </select>
                 </div>
             </div>
         `,
-        footer_note: "RIFT recommends AAS for women (cutoff 8) and AIR for men (cutoff 2) for low-risk exclusion.",
+        footer_note: "Algorithm automatically routes to Shera Score for Age <16, and RIFT/AIR/AAS consensus for Age ≥16.",
         calculate: function() {
+            // Core Inputs
             const age = parseInt(document.getElementById('ap-age')?.value) || 25;
             const gender = document.getElementById('ap-gender')?.value || 'Female';
             const dur = document.getElementById('ap-dur')?.value || '<24';
@@ -814,128 +845,121 @@ const TRIAL_DATA = {
             const crp = parseFloat(document.getElementById('ap-crp')?.value) || 0;
             const pn = wcc > 0 ? (neuts / wcc) : 0; 
 
-            const vomit = document.getElementById('ap-vomit')?.checked;
-            const migrat = document.getElementById('ap-migrat')?.checked;
-            const temp = document.getElementById('ap-temp')?.checked;
+            // Clinical Signs
             const rifp = document.getElementById('ap-rifp')?.checked;
             const rift = document.getElementById('ap-rift')?.checked;
+            const migrat = document.getElementById('ap-migrat')?.checked;
+            const temp = document.getElementById('ap-temp')?.checked;
+            const vomit = document.getElementById('ap-vomit')?.checked;
+            const nausea = document.getElementById('ap-nausea')?.checked;
+            const cough = document.getElementById('ap-cough')?.checked;
             const rebound = parseInt(document.getElementById('ap-rebound')?.value) || 0;
 
-            let air = 0;
-            if (vomit) air += 1;
-            if (rifp) air += 1;
-            if (rebound === 3) air += 3; else if (rebound === 2) air += 2; else if (rebound === 1) air += 1;
-            if (temp) air += 1;
-            if (wcc >= 15) air += 2; else if (wcc >= 10) air += 1;
-            if (pn >= 0.85) air += 2; else if (pn >= 0.70) air += 1;
-            if (crp >= 50) air += 2; else if (crp >= 10) air += 1;
+            // ==========================================
+            // PAEDIATRIC LOGIC (Shera Score)
+            // ==========================================
+            if (age < 16) {
+                let shera = 0;
+                if (rift) shera += 2;
+                if (cough) shera += 2;
+                if (migrat) shera += 1;
+                if (nausea || vomit) shera += 1; // Nausea/Vomit/Anorexia consolidation
+                if (temp) shera += 1;
+                if (wcc > 10.0) shera += 1; // Leucocytosis proxy
+                if (neuts > 7.5) shera += 1; // Neutrophilia proxy
 
-            let aas = 0;
-            if (rifp) aas += 2;
-            if (migrat) aas += 2;
-            if (rift && gender === 'Male' && age < 50) aas += 3; else if (rift) aas += 1;
-            if (rebound === 3 || rebound === 2) aas += 4; else if (rebound === 1) aas += 2;
-            if (wcc >= 14) aas += 3; else if (wcc >= 10.9) aas += 2; else if (wcc >= 7.2) aas += 1;
-            if (pn >= 0.83) aas += 4; else if (pn >= 0.75) aas += 3; else if (pn >= 0.62) aas += 2;
-            
-            if (dur === '<24') {
-                if (crp >= 83) aas += 1; else if (crp >= 25) aas += 5; else if (crp >= 11) aas += 3; else if (crp >= 4) aas += 2;
-            } else {
-                if (crp >= 152) aas += 1; else if (crp >= 53) aas += 2; else if (crp >= 12) aas += 2;
+                let risk = "Low";
+                if (shera > 3 && gender === 'Female') risk = "High";
+                if (shera > 2 && gender === 'Male' && age > 11) risk = "High";
+
+                let ppv = risk === 'High' ? "41.4%" : "N/A";
+                let comp = risk === 'Low' ? "< 1%" : "16-21%";
+                let appyProb = risk === 'Low' ? "4.8%" : "42%";
+
+                let outHTML = `
+                    <div style="background:#fef2f2; padding:15px; border-radius:8px; border:1px solid #fecdd3; margin-bottom:15px; text-align:center;">
+                        <h4 style="margin:0; color:#e11d48; text-transform:uppercase; font-size:0.85rem; letter-spacing:1px;">Paediatric Pathway Activated (<16 yrs)</h4>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:15px; margin-bottom:15px;">
+                        <div>
+                            <div style="font-size:0.85rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Shera Score</div>
+                            <div style="font-size:2.5rem; font-weight:800; color:${risk==='High'?'#f43f5e':'#16a34a'}; line-height:1;">${shera} <span style="font-size:1rem; color:#94a3b8;">/ 10</span></div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.85rem; color:#64748b; font-weight:bold; text-transform:uppercase;">Risk Profile</div>
+                            <div style="font-size:1.5rem; font-weight:bold; color:${risk==='High'?'#f43f5e':'#16a34a'};">${risk}</div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.95rem; color:#334155; line-height:1.6;">
+                        <strong>Clinical Probabilities:</strong><br>
+                        • Likelihood of Appendicitis: <strong>${appyProb}</strong><br>
+                        • Risk of Complicated Disease: <strong>${comp}</strong>
+                    </div>
+                `;
+
+                return { outputHTML: outHTML, outputColor: risk === 'High' ? "#f43f5e" : "#16a34a" };
             }
 
-            const riskAir = air > 8 ? 'High' : (air >= 5 ? 'Moderate' : 'Low');
-            const riskAas = aas >= 16 ? 'High' : (aas >= 11 ? 'Moderate' : 'Low');
-            const riskRift = (gender === 'Male' && air > 2) || (gender === 'Female' && aas > 8) ? 'High' : 'Low';
+            // ==========================================
+            // ADULT LOGIC (AIR, AAS, RIFT)
+            // ==========================================
+            else {
+                // AIR Score
+                let air = 0;
+                if (vomit) air += 1;
+                if (rifp) air += 1;
+                if (rebound === 3) air += 3; else if (rebound === 2) air += 2; else if (rebound === 1) air += 1;
+                if (temp) air += 1;
+                if (wcc >= 15) air += 2; else if (wcc >= 10) air += 1;
+                if (pn >= 0.85) air += 2; else if (pn >= 0.70) air += 1;
+                if (crp >= 50) air += 2; else if (crp >= 10) air += 1;
 
-            let outHTML = `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; text-align:center;">
-                <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;"><strong>AIR Score:</strong><br><span style="font-size:1.5rem; color:#eab308;">${air}</span><br><span style="font-size:0.8rem;">${riskAir} Risk</span></div>
-                <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;"><strong>AAS Score:</strong><br><span style="font-size:1.5rem; color:#eab308;">${aas}</span><br><span style="font-size:0.8rem;">${riskAas} Risk</span></div>
-                <div style="background:#fefce8; padding:10px; border-radius:6px; border:1px solid #fef08a;"><strong>RIFT Consensus:</strong><br><span style="font-size:1.2rem; font-weight:bold; color:${riskRift==='High'?'#dc2626':'#16a34a'};">${riskRift} Risk</span></div>
-            </div>`;
+                // AAS Score
+                let aas = 0;
+                if (rifp) aas += 2;
+                if (migrat) aas += 2;
+                if (rift && gender === 'Male' && age < 50) aas += 3; else if (rift) aas += 1;
+                if (rebound === 3 || rebound === 2) aas += 4; else if (rebound === 1) aas += 2;
+                if (wcc >= 14) aas += 3; else if (wcc >= 10.9) aas += 2; else if (wcc >= 7.2) aas += 1;
+                if (pn >= 0.83) aas += 4; else if (pn >= 0.75) aas += 3; else if (pn >= 0.62) aas += 2;
+                
+                if (dur === '<24') {
+                    if (crp >= 83) aas += 1; else if (crp >= 25) aas += 5; else if (crp >= 11) aas += 3; else if (crp >= 4) aas += 2;
+                } else {
+                    if (crp >= 152) aas += 1; else if (crp >= 53) aas += 2; else if (crp >= 12) aas += 2;
+                }
 
-            return {
-                chartType: 'bar', customXLabels: ["AIR Score", "AAS Score"],
-                primaryData: [air, aas], secondaryData: [0,0],
-                primaryLabel: "Calculated Score", secondaryLabel: "",
-                labelY: "Points", yMax: 20,
-                outputHTML: outHTML, outputColor: "#eab308"
-            };
-        }
-    },
+                // Risk Categorization
+                const riskAir = air > 8 ? 'High' : (air >= 5 ? 'Moderate' : 'Low');
+                const riskAas = aas >= 16 ? 'High' : (aas >= 11 ? 'Moderate' : 'Low');
+                const riskRift = (gender === 'Male' && air > 2) || (gender === 'Female' && aas > 8) ? 'High' : 'Low';
 
-    paed_appendicitis: {
-        category: "Clinical Practice Tools", type: "calculated", shortName: "Paediatric Appy (Shera)",
-        title: "Paediatric Appendicitis Triage", subtitle: "Shera Clinical Score",
-        source: "RIFT Study Group (Paediatric Cohort)", color: "#f43f5e",
-        controlsHTML: `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                    <label class="nav-label">Age</label>
-                    <input type="number" id="pa-age" class="ee-select" value="10" min="5" max="15" oninput="runCalculation('paed_appendicitis')">
-                    
-                    <label class="nav-label">Gender</label>
-                    <select id="pa-gender" class="ee-select" onchange="runCalculation('paed_appendicitis')">
-                        <option value="Female">Female</option><option value="Male">Male</option>
-                    </select>
+                let outHTML = `
+                    <div style="background:#f0fdfa; padding:15px; border-radius:8px; border:1px solid #ccfbf1; margin-bottom:15px; text-align:center;">
+                        <h4 style="margin:0; color:#0d9488; text-transform:uppercase; font-size:0.85rem; letter-spacing:1px;">Adult Pathway Activated (≥16 yrs)</h4>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; text-align:center;">
+                        <div style="background:#f8fafc; padding:15px 10px; border-radius:6px; border:1px solid #e2e8f0;">
+                            <div style="font-size:0.8rem; font-weight:bold; color:#64748b;">AIR SCORE</div>
+                            <div style="font-size:2rem; font-weight:800; color:#eab308; line-height:1.2;">${air}</div>
+                            <div style="font-size:0.8rem; color:#334155;">${riskAir} Risk</div>
+                        </div>
+                        <div style="background:#f8fafc; padding:15px 10px; border-radius:6px; border:1px solid #e2e8f0;">
+                            <div style="font-size:0.8rem; font-weight:bold; color:#64748b;">AAS SCORE</div>
+                            <div style="font-size:2rem; font-weight:800; color:#eab308; line-height:1.2;">${aas}</div>
+                            <div style="font-size:0.8rem; color:#334155;">${riskAas} Risk</div>
+                        </div>
+                        <div style="background:${riskRift==='High'?'#fef2f2':'#f0fdf4'}; padding:15px 10px; border-radius:6px; border:1px solid ${riskRift==='High'?'#fecdd3':'#bbf7d0'};">
+                            <div style="font-size:0.8rem; font-weight:bold; color:#64748b;">RIFT CONSENSUS</div>
+                            <div style="font-size:1.5rem; font-weight:800; color:${riskRift==='High'?'#e11d48':'#16a34a'}; line-height:1.5; margin-top:5px;">${riskRift}</div>
+                        </div>
+                    </div>
+                `;
 
-                    <label class="nav-label" style="margin-top:15px;">Clinical Presentation</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-rift" onchange="runCalculation('paed_appendicitis')"> RIF Tenderness (2 pts)</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-rt" onchange="runCalculation('paed_appendicitis')"> RIF Pain on cough/percussion/hopping (2 pts)</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-migrat" onchange="runCalculation('paed_appendicitis')"> Migratory Pain</label>
-                </div>
-                <div>
-                    <label class="nav-label" style="margin-top:15px; visibility:hidden;">Symptoms</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-anorexia" onchange="runCalculation('paed_appendicitis')"> Anorexia</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-nausea" onchange="runCalculation('paed_appendicitis')"> Nausea</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-pyrexia" onchange="runCalculation('paed_appendicitis')"> Pyrexia</label>
-                    
-                    <label class="nav-label" style="margin-top:15px;">Bloods</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-leuc" onchange="runCalculation('paed_appendicitis')"> Leucocytosis</label>
-                    <label class="ee-check-group"><input type="checkbox" id="pa-neuts" onchange="runCalculation('paed_appendicitis')"> Neutrophilia</label>
-                </div>
-            </div>
-        `,
-        footer_note: "Shera score utilized for risk stratification in children (5-15 years).",
-        calculate: function() {
-            const age = parseInt(document.getElementById('pa-age')?.value) || 10;
-            const gender = document.getElementById('pa-gender')?.value || 'Female';
-
-            let shera = 0;
-            if (document.getElementById('pa-rift')?.checked) shera += 2;
-            if (document.getElementById('pa-rt')?.checked) shera += 2;
-            if (document.getElementById('pa-migrat')?.checked) shera += 1;
-            if (document.getElementById('pa-anorexia')?.checked) shera += 1;
-            if (document.getElementById('pa-nausea')?.checked) shera += 1;
-            if (document.getElementById('pa-pyrexia')?.checked) shera += 1;
-            if (document.getElementById('pa-leuc')?.checked) shera += 1;
-            if (document.getElementById('pa-neuts')?.checked) shera += 1;
-
-            let risk = "Low";
-            if (shera > 3 && gender === 'Female') risk = "High";
-            if (shera > 2 && gender === 'Male' && age > 11) risk = "High";
-
-            let ppv = risk === 'High' ? "41.4%" : "N/A";
-            let comp = risk === 'Low' ? "< 1%" : "16-21%";
-            let appyProb = risk === 'Low' ? "4.8%" : "42%";
-
-            let outHTML = `<strong>Shera Score: ${shera} / 10</strong><br>`;
-            if (risk === 'Low') {
-                outHTML += `<span style="color:#16a34a;"><strong>Low Risk Profile.</strong> Probability of Appendicitis: ${appyProb}. Risk of complicated disease: ${comp}.</span>`;
-            } else {
-                outHTML += `<span style="color:#f43f5e;"><strong>High Risk Profile.</strong> Probability of Appendicitis: ${appyProb}. Risk of complicated disease: ${comp}. (PPV: ${ppv})</span>`;
+                return { outputHTML: outHTML, outputColor: "#eab308" };
             }
-
-            return {
-                chartType: 'bar', customXLabels: ["Patient Shera Score"],
-                primaryData: [shera], secondaryData: [0],
-                primaryLabel: "Score", secondaryLabel: "",
-                labelY: "Points", yMax: 10,
-                outputHTML: outHTML, outputColor: risk === 'High' ? "#f43f5e" : "#16a34a"
-            };
         }
     },
-
     sofa: {
         category: "Clinical Practice Tools", type: "calculated", shortName: "ICU (SOFA)",
         title: "Sequential Organ Failure Assessment", subtitle: "SOFA Score & Mortality Predictor",
