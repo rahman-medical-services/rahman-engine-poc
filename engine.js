@@ -21,7 +21,7 @@ function loadDataFromQualtrics() {
     const modelTarget = urlParams.get('model');
 
     if (modelTarget && TRIAL_DATA[modelTarget]) {
-        console.log(\`OutcomeLogic: Loading \${modelTarget} model via Qualtrics API...\`);
+        console.log(`OutcomeLogic: Loading ${modelTarget} model via Qualtrics API...`);
 
         // Mount the widget into the DOM first
         loadWidget(modelTarget, null);
@@ -225,7 +225,7 @@ function runCalculation(type) {
         const outputBox = document.getElementById('dynamic-output-box');
         if (results.outputHTML) {
             outputBox.innerHTML = results.outputHTML;
-            outputBox.style.borderLeft = \`5px solid \${results.outputColor || 'var(--brand-cyan)'}\`;
+            outputBox.style.borderLeft = `5px solid ${results.outputColor || 'var(--brand-cyan)'}`;
             outputBox.style.display = 'block';
         } else if (outputBox) {
             outputBox.style.display = 'none';
@@ -247,7 +247,7 @@ function renderChart(id, results, color, xLabels) {
     const ctx = document.getElementById(id).getContext('2d');
     
     const isBar = results.chartType === 'bar';
-    const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : \`+\${i}\`);
+    const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
 
     currentChart = new Chart(ctx, {
         type: isBar ? 'bar' : 'line',
@@ -258,7 +258,7 @@ function renderChart(id, results, color, xLabels) {
                     label: results.primaryLabel || 'Selected Patient Scenario', 
                     data: results.primaryData, 
                     borderColor: color, 
-                    backgroundColor: isBar ? color : \`\${color}20\`, 
+                    backgroundColor: isBar ? color : `${color}20`, 
                     borderWidth: isBar ? 1 : 4, 
                     fill: !isBar, 
                     tension: 0.3, 
@@ -302,7 +302,7 @@ async function exportToPDF(filename) {
 
     const opt = {
         margin: [15, 12, 15, 12],
-        filename: \`\${filename}-Evidence-Summary.pdf\`,
+        filename: `${filename}-Evidence-Summary.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, windowWidth: 1000 }, /* Force desktop layout for PDF even on mobile */
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
