@@ -2,7 +2,7 @@
  * OutcomeLogic™ Universal Clinical Engine v4.2 (V2.0 Commercial Build)
  * (c) 2026 OutcomeLogic Ltd / Rahman Medical Services Limited. 
  * All Rights Reserved. PROPRIETARY CLINICAL TRIAGE MODELS.
- * Updates: Executive Dashboard, Qualtrics API Bridge, Mobile Responsiveness
+ * Updates: Executive ROI Dashboard, Qualtrics API Bridge, Mobile Responsiveness
  * ========================================================================== */
 
 let currentChart = null;
@@ -21,7 +21,7 @@ function loadDataFromQualtrics() {
     const modelTarget = urlParams.get('model');
 
     if (modelTarget && TRIAL_DATA[modelTarget]) {
-        console.log(`OutcomeLogic: Loading ${modelTarget} model via Qualtrics API...`);
+        console.log("OutcomeLogic: Loading " + modelTarget + " model via Qualtrics API...");
 
         // Mount the widget into the DOM first
         loadWidget(modelTarget, null);
@@ -65,6 +65,7 @@ function renderWelcomeScreen() {
 
     mount.innerHTML = `
         <div style="padding: 40px 20px; max-width: 900px; margin: 0 auto; animation: fadeIn 0.5s ease-in;">
+            
             <div style="border-bottom: 3px solid var(--brand-navy); padding-bottom: 20px; margin-bottom: 30px;">
                 <h1 style="color: var(--brand-navy); font-size: 2.4rem; margin-bottom: 10px; font-weight: 800; letter-spacing: -0.5px;">
                     OutcomeLogic™
@@ -73,35 +74,47 @@ function renderWelcomeScreen() {
                     Evidence-Driven Clinical Decision Intelligence
                 </h2>
                 <p style="font-size: 1.15rem; color: #334155; line-height: 1.6; max-width: 700px; margin-top: 15px;">
-                    Transform patient questionnaire data into actionable triage outcomes, shared decision reports, and optimized surgical pathways.
+                    Transform patient questionnaire data into actionable triage profiles, shared decision reports, and optimized surgical pathways.
                 </p>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px;">
-                <div style="background: #f0f9ff; padding: 25px; border-radius: 10px; border-left: 5px solid #0ea5e9;">
-                    <h3 style="margin-top: 0; color: #0f172a; font-size: 1.1rem;">Operational Efficiency</h3>
-                    <ul style="color: #475569; padding-left: 20px; margin-bottom: 0; line-height: 1.6;">
-                        <li><strong>Automated Triage:</strong> Convert pre-assessment responses into structured discharge profiles.</li>
-                        <li><strong>Reduce F2F:</strong> Safely outline watchful waiting trajectories using validated trial math.</li>
-                        <li><strong>Consultant ROI:</strong> Reduce manual data review time from 8 minutes to 30 seconds per file.</li>
-                    </ul>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; margin-bottom: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h3 style="margin: 0; color: var(--brand-navy); font-size: 1.3rem;">Projected Pathway Impact</h3>
+                    <span style="background: #fef08a; color: #854d0e; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">
+                        Demonstration Simulation
+                    </span>
                 </div>
-
-                <div style="background: #fef2f2; padding: 25px; border-radius: 10px; border-left: 5px solid #ef4444;">
-                    <h3 style="margin-top: 0; color: #0f172a; font-size: 1.1rem;">Clinical Governance</h3>
-                    <ul style="color: #475569; padding-left: 20px; margin-bottom: 0; line-height: 1.6;">
-                        <li><strong>Montgomery Compliant:</strong> Generate dynamic, personalized shared decision narratives.</li>
-                        <li><strong>Audit-Ready:</strong> Exportable, printed clinical summaries mapped directly to peer-reviewed evidence.</li>
-                        <li><strong>Zero IT Friction:</strong> Drops instantly into existing Qualtrics forms via secure iframe.</li>
-                    </ul>
+                <p style="font-size: 0.95rem; color: #64748b; margin-top: 0; margin-bottom: 25px;">
+                    Simulated commercial and operational outcomes based on a cohort of 1,000 standard surgical referrals processed through the OutcomeLogic engine.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; line-height: 1;">90<span style="font-size: 1.2rem;">%</span></div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Triage Time Reduction</div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">Consultant review time reduced from 8 minutes to under 60 seconds per case.</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #3b82f6; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; line-height: 1;">32<span style="font-size: 1.2rem;">%</span></div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Conservative Allocation</div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">Patients safely routed to watchful waiting pathways using validated clinical math.</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #f59e0b; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; line-height: 1;">18<span style="font-size: 1.2rem;">%</span></div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Pre-Op Optimisation Flagged</div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 8px;">High-risk patients identified instantly, reducing day-of-surgery cancellations.</div>
+                    </div>
                 </div>
             </div>
 
-            <h3 style="color: var(--brand-navy); font-size: 1.3rem; margin-bottom: 20px;">Select a Pathway to View Demo</h3>
+            <h3 style="color: var(--brand-navy); font-size: 1.3rem; margin-bottom: 20px;">Select a Pathway to View Interactive Demo</h3>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 <button class="nav-btn" style="padding: 15px; text-align: left; background: white; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onclick="loadWidget('inca', event)">
-                    <strong>Waitlist Triage</strong><br><span style="font-size: 0.85rem; color: #64748b;">Watchful Waiting Deflection (INCA)</span>
+                    <strong>Waitlist Triage</strong><br><span style="font-size: 0.85rem; color: #64748b;">Watchful Waiting Models (INCA)</span>
                 </button>
                 <button class="nav-btn" style="padding: 15px; text-align: left; background: white; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onclick="loadWidget('readiness', event)">
                     <strong>Perioperative Planning</strong><br><span style="font-size: 0.85rem; color: #64748b;">Readiness & STOP-BANG</span>
@@ -225,7 +238,7 @@ function runCalculation(type) {
         const outputBox = document.getElementById('dynamic-output-box');
         if (results.outputHTML) {
             outputBox.innerHTML = results.outputHTML;
-            outputBox.style.borderLeft = `5px solid ${results.outputColor || 'var(--brand-cyan)'}`;
+            outputBox.style.borderLeft = "5px solid " + (results.outputColor || 'var(--brand-cyan)');
             outputBox.style.display = 'block';
         } else if (outputBox) {
             outputBox.style.display = 'none';
@@ -247,7 +260,9 @@ function renderChart(id, results, color, xLabels) {
     const ctx = document.getElementById(id).getContext('2d');
     
     const isBar = results.chartType === 'bar';
-    const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : `+${i}`);
+    
+    // Safely generate labels without triggering syntax escapes
+    const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : '+' + i);
 
     currentChart = new Chart(ctx, {
         type: isBar ? 'bar' : 'line',
@@ -258,7 +273,7 @@ function renderChart(id, results, color, xLabels) {
                     label: results.primaryLabel || 'Selected Patient Scenario', 
                     data: results.primaryData, 
                     borderColor: color, 
-                    backgroundColor: isBar ? color : `${color}20`, 
+                    backgroundColor: isBar ? color : color + '20', 
                     borderWidth: isBar ? 1 : 4, 
                     fill: !isBar, 
                     tension: 0.3, 
@@ -302,7 +317,7 @@ async function exportToPDF(filename) {
 
     const opt = {
         margin: [15, 12, 15, 12],
-        filename: `${filename}-Evidence-Summary.pdf`,
+        filename: filename + '-Evidence-Summary.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, windowWidth: 1000 }, /* Force desktop layout for PDF even on mobile */
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
