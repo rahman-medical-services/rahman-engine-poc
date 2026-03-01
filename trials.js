@@ -1,3 +1,4 @@
+
 /**
  * OutcomeLogic™ Master Evidence Ledger v4.5 (V2.0 Regulatory Compliant Build)
  * (c) 2026 OutcomeLogic Ltd / Rahman Medical Services Limited. All Rights Reserved.
@@ -31,7 +32,6 @@ const TRIAL_DATA = {
             const hrTotal = ageMod * (multStones ? 1.19 : 1.0) * (altHigh ? 1.22 : 1.0);
             const prob12m = Math.pow(this.baseline[12], hrTotal) * 100;
 
-            // COMPLIANT SYNTHESIS: Purely descriptive, no advice.
             const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Based on trial modeling, the statistical probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Input Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones ? 'Multiple stones' : 'Single stone'}, ${altHigh ? 'Elevated ALT' : 'Normal ALT'}.`;
 
             return {
@@ -70,7 +70,6 @@ const TRIAL_DATA = {
             const hr = (symp === 'mild' ? 1.45 : 1.0) * (age === 'old' ? 1.25 : 1.0) * (heavy ? 1.30 : 1.0);
             const risk12y = (1 - Math.pow((1 - 0.642), hr)) * 100;
 
-            // COMPLIANT SYNTHESIS: Removed "Discharge". Only states the risk percentage.
             const synth = `OUTCOMELOGIC SYNTHESIS (INCA): 12-Year surgical crossover probability is calculated at ${risk12y.toFixed(0)}%. Input Profile: ${age === 'old' ? 'Over 65' : 'Under 65'}, ${symp === 'mild' ? 'Mild Symptoms' : 'Asymptomatic'}, ${heavy ? 'High physical load' : 'Standard load'}. Patient has been provided with observational trajectory data.`;
 
             return {
@@ -84,7 +83,7 @@ const TRIAL_DATA = {
     },
 
     // ---------------------------------------------------------
-    // 2. SHARED DECISION MAKING (SDM / Consent)
+    // 2. SHARED DECISION MAKING
     // ---------------------------------------------------------
     reflux: {
         category: "Shared Decision Making", type: "calculated", shortName: "GORD (REFLUX)",
@@ -108,59 +107,6 @@ const TRIAL_DATA = {
                 secondaryData: this.baseline_med,
                 primaryLabel: "Fundoplication (Surgery)", secondaryLabel: "Medical Management (PPI)",
                 labelY: "Probability off PPI Medication (%)"
-            };
-        }
-    },
-
-    coda: {
-        category: "Shared Decision Making", type: "calculated", shortName: "Appendicitis (CODA)",
-        title: "CODA Trial: Uncomplicated Appendicitis", subtitle: "Antibiotics-First vs. Appendectomy",
-        source: "NEJM (2020)", color: "#ef4444",
-        xAxisLabels: ['0', '30 Days', '1 Year', '2 Years', '3 Years', '4 Years'],
-        baseline_abx: [100, 89, 75, 70, 65, 61], baseline_surg: [100, 100, 100, 100, 100, 100], 
-        controlsHTML: `
-            <div style="background:#fee2e2; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #ef4444;">
-                <label class="ee-check-group" style="color:#991b1b; font-weight:800;">
-                    <input type="checkbox" id="coda-stone" onchange="runCalculation('coda')"> Appendicolith Present on CT?
-                </label>
-            </div>
-        `,
-        footer_note: "CODA demographic modeling. Appendicolith presence correlates with altered trial outcomes.",
-        calculate: function() {
-            const abxMod = document.getElementById('coda-stone')?.checked ? 0.65 : 1.0; 
-            return {
-                primaryData: this.baseline_abx.map((s, i) => i === 0 ? 100 : s * abxMod),
-                secondaryData: this.baseline_surg,
-                primaryLabel: "Antibiotics-First Pathway", secondaryLabel: "Appendectomy (Surgery)",
-                labelY: "Probability of Avoiding Surgery (%)"
-            };
-        }
-    },
-
-    bariatrics: {
-        category: "Shared Decision Making", type: "calculated", shortName: "Bariatrics Combined",
-        title: "Metabolic Surgery Outcomes", subtitle: "Bypass vs. Sleeve vs. Band",
-        source: "STAMPEDE & By-Band-Sleeve Trials", color: "#8b5cf6",
-        xAxisLabels: ['Baseline', '1yr', '2yr', '3yr', '4yr', '5yr'],
-        baseline_bypass: [0, 29, 28, 28, 27, 27], baseline_sleeve: [0, 25, 24, 24, 23, 23], baseline_band: [0, 15, 14, 13, 12, 11],
-        controlsHTML: `
-            <label class="nav-label">Compare Procedure to Bypass</label>
-            <select id="bar-surg" class="ee-select" onchange="runCalculation('bariatrics')">
-                <option value="sleeve">Sleeve Gastrectomy vs Bypass</option>
-                <option value="band">Gastric Band vs Bypass</option>
-            </select>
-            <label class="ee-check-group"><input type="checkbox" id="bar-diab" onchange="runCalculation('bariatrics')"> Type 2 Diabetes</label>
-        `,
-        footer_note: "Statistical visualization of expected Total Body Weight Loss % (TBWL) across major cohorts.",
-        calculate: function() {
-            const surgType = document.getElementById('bar-surg')?.value || 'sleeve';
-            const diabMod = document.getElementById('bar-diab')?.checked ? 0.95 : 1.0; 
-            const comp = surgType === 'sleeve' ? this.baseline_sleeve : this.baseline_band;
-            return {
-                primaryData: this.baseline_bypass.map(s => s * diabMod),
-                secondaryData: comp.map(s => s * diabMod),
-                primaryLabel: "Gastric Bypass", secondaryLabel: surgType === 'sleeve' ? "Sleeve Gastrectomy" : "Gastric Band",
-                labelY: "Total Body Weight Loss (TBWL %)", yMax: 40
             };
         }
     },
@@ -212,16 +158,14 @@ const TRIAL_DATA = {
                     <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
                 </div>
                 <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
-                <button class="nav-btn active" style="margin-top:20px; width:100%; background:#10b981;" onclick="exportToPDF('Readiness-Passport')">Download Data Summary (PDF)</button>
             </div>
         `,
-        footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems for clinician review.",
+        footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
         calculate: function() {
             let dasi = 0; document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
             let mets = ((0.43 * dasi) + 9.6) / 3.5;
             let sb = 0; document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-            // COMPLIANT MODIFIERS: Removed "Requirements" and "Needed".
             let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
             if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
             if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
@@ -235,73 +179,12 @@ const TRIAL_DATA = {
             document.getElementById('out-sb').innerText = sb + "/8";
             document.getElementById('out-pillars').innerHTML = pHTML;
 
-            // COMPLIANT OUTPUT: Removed "Candidate for surgery". Just presents the alignment with standard pathways.
             let advice = (mets >= 4 && sb < 3 && !document.getElementById('in-bmi')?.checked) 
                 ? "Calculated profile (METs ≥ 4, STOP-BANG < 3) aligns statistically with standard baseline risk thresholds for elective procedures."
                 : "Calculated profile indicates variables (e.g., METs < 4, elevated STOP-BANG, or BMI > 35) statistically associated with complex perioperative pathways.";
             document.getElementById('out-advice').innerText = advice;
 
-            const synth = `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. ${advice}`;
-
-            return { synthesisText: synth }; 
-        }
-    },
-
-    recovery: {
-        category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
-        title: "Predictive Recovery Passport", subtitle: "Procedure-Specific Trajectories",
-        source: "ERAS Society Outcomes Database", color: "#10b981", 
-        xAxisLabels: ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 28', '6 Weeks'],
-        baselines: {
-            lap_minor: [5, 20, 60, 85, 95, 100, 100], lap_major: [0, 10, 30, 60, 80, 90, 95], open_major: [0, 0, 10, 25, 45, 60, 80]     
-        },
-        controlsHTML: `
-            <label class="nav-label">Procedure Conducted</label>
-            <select id="rec-surgery" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="lap_minor">Lap Cholecystectomy / Hernia</option>
-                <option value="lap_major">Lap Fundoplication / Bariatric</option>
-                <option value="open_major">Major Open (Esophagectomy/Bowel)</option>
-            </select>
-            <label class="nav-label">Usual Physical Activity Before Surgery</label>
-            <select id="rec-fit" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.1">Highly Active / Sport</option>
-                <option value="1.0" selected>Normal Daily Activity</option>
-                <option value="0.8">Limited Mobility / Frail</option>
-            </select>
-            <label class="nav-label" style="color:#c0392b;">Post-Op Course</label>
-            <select id="rec-comp" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.0">Uncomplicated Recovery</option>
-                <option value="0.65">Minor Complication (e.g., Infection, Ileus)</option>
-            </select>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-                <div class="evidence-card"><div class="stat-label">Driving</div><div id="rec-driving" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Lifting</div><div id="rec-lifting" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Intimacy</div><div id="rec-sex" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Alcohol</div><div id="rec-alcohol" class="stat-main" style="font-size:1.2rem;">--</div></div>
-            </div>
-        `,
-        footer_note: "Visualization of ERAS protocol databases. Variables mapped against standard recovery algorithms.",
-        calculate: function() {
-            const surg = document.getElementById('rec-surgery')?.value || 'lap_minor';
-            const fit = parseFloat(document.getElementById('rec-fit')?.value) || 1.0;
-            const compMod = parseFloat(document.getElementById('rec-comp')?.value) || 1.0;
-            const selected = this.baselines[surg];
-            
-            const delay = (fit < 1.0 ? 1.3 : 1.0) * (compMod < 1.0 ? 1.8 : 1.0); 
-            
-            if(document.getElementById('rec-driving')) {
-                document.getElementById('rec-driving').innerText = Math.round((surg === 'lap_minor' ? 7 : 14) * delay) + " Days";
-                document.getElementById('rec-lifting').innerText = Math.round((surg === 'lap_minor' ? 4 : 6) * delay) + " Wks";
-                document.getElementById('rec-sex').innerText = Math.round((surg === 'lap_minor' ? 7 : 14) * delay) + " Days";
-                document.getElementById('rec-alcohol').innerText = surg === 'lap_major' ? "Strict Avoid" : "Off Opioids";
-            }
-
-            return {
-                primaryData: selected.map(s => Math.min(s * fit * compMod, 100)),
-                secondaryData: selected,
-                primaryLabel: "Adjusted Trajectory", secondaryLabel: "Standard Uncomplicated Path",
-                labelY: "Return to Normal Function (%)"
-            };
+            return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. ${advice}` }; 
         }
     },
 
@@ -336,186 +219,252 @@ const TRIAL_DATA = {
         }
     },
 
-    viale: {
-        category: "Precision Oncology", type: "calculated", shortName: "AML (VIALE-A)",
-        title: "VIALE-A: AML Survival Modeling", subtitle: "Aza + Venetoclax vs. Aza + Placebo",
-        source: "NEJM 2020", color: "#8e44ad",
-        xAxisLabels: ['Baseline', '6m', '12m', '18m', '24m'],
-        baseline_aza_ven: [100, 75, 60, 50, 43], baseline_aza: [100, 55, 38, 30, 24],
-        controlsHTML: `
-            <label class="nav-label">Cytogenetic Risk Profile</label>
-            <select id="viale-risk" class="ee-select" onchange="runCalculation('viale')">
-                <option value="1.0">Intermediate Risk</option><option value="1.35">Poor/Complex Risk</option>
-            </select>
-        `,
-        footer_note: "Statistical visualization. Does not constitute a clinical prognosis.",
-        calculate: function() {
-            const hr = parseFloat(document.getElementById('viale-risk')?.value) || 1;
-            return {
-                primaryData: this.baseline_aza_ven.map(s => Math.pow(s/100, hr) * 100),
-                secondaryData: this.baseline_aza.map(s => Math.pow(s/100, hr) * 100),
-                primaryLabel: "Azacitidine + Venetoclax", secondaryLabel: "Azacitidine + Placebo",
-                labelY: "Overall Survival (%)"
-            };
-        }
-    },
-
-    protect: {
-        category: "Precision Oncology", type: "calculated", shortName: "Prostate (ProtecT)",
-        title: "ProtecT Trial: 15-Year Data", subtitle: "Active Surveillance vs. Prostatectomy",
-        source: "NEJM 2023", color: "#3b82f6",
-        xAxisLabels: ['0', '3y', '6y', '9y', '12y', '15y'],
-        baseline_surv: [100, 98, 95, 93, 91, 90.6], baseline_surg: [100, 99, 98, 97, 96, 95.3],
-        controlsHTML: `
-            <label class="nav-label">Tumour Grade (Gleason Score)</label>
-            <select id="pro-gleason" class="ee-select" onchange="runCalculation('protect')">
-                <option value="1.0">Gleason 6 (Low Risk)</option><option value="1.4">Gleason 7+ (Intermediate/High)</option>
-            </select>
-        `,
-        footer_note: "Data visualization only. Prostate-cancer specific survival is ~97% across all arms at 15 years. Chart displays Metastasis-Free Survival.",
-        calculate: function() {
-            const hr = parseFloat(document.getElementById('pro-gleason')?.value) || 1.0;
-            return {
-                primaryData: this.baseline_surg.map(s => Math.pow(s/100, hr) * 100),
-                secondaryData: this.baseline_surv.map(s => Math.pow(s/100, hr) * 100),
-                primaryLabel: "Prostatectomy", secondaryLabel: "Active Surveillance",
-                labelY: "Metastasis-Free Survival (%)", yMin: 85
-            };
-        }
-    },
-
     // ---------------------------------------------------------
-    // 5. SPECIALTY PATHWAYS
+    // 6. CLINICAL PRACTICE TOOLS (Direct Clinical Care)
     // ---------------------------------------------------------
-    topkat: {
-        category: "Specialty Pathways", type: "calculated", shortName: "Knees (TOPKAT)",
-        title: "Knee Replacement Outcomes", subtitle: "Total (TKR) vs. Partial (UKR) Data Comparison",
-        source: "TOPKAT Trial (Lancet 2019) & NJR Data", color: "#27ae60",
+    oakland: {
+        category: "Clinical Practice Tools", type: "calculated", shortName: "LGIB (Oakland)",
+        title: "Lower GI Bleed Triage", subtitle: "Oakland Score for Safe Discharge",
+        source: "Oakland K, et al. Lancet Gastroenterol Hepatol (2017)", color: "#dc2626",
         controlsHTML: `
-            <label class="nav-label">Patient Age</label>
-            <input type="number" id="tk-age" class="ee-select" value="65" min="40" max="90" onchange="runCalculation('topkat')">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label class="nav-label">Age</label>
+                    <select id="oak-age" class="ee-select" onchange="runCalculation('oakland')">
+                        <option value="0">< 40</option><option value="1" selected>40 - 69</option><option value="2">≥ 70</option>
+                    </select>
+                    <label class="nav-label">Gender</label>
+                    <select id="oak-gender" class="ee-select" onchange="runCalculation('oakland')">
+                        <option value="0">Female</option><option value="1">Male</option>
+                    </select>
+                    <label class="nav-label">Systolic BP</label>
+                    <select id="oak-bp" class="ee-select" onchange="runCalculation('oakland')">
+                        <option value="5">< 90</option><option value="4">90-119</option><option value="3" selected>120-129</option><option value="2">130-159</option><option value="0">≥ 160</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="nav-label">Heart Rate (HR)</label>
+                    <select id="oak-hr" class="ee-select" onchange="runCalculation('oakland')">
+                        <option value="0">< 70</option><option value="1" selected>70-89</option><option value="2">90-109</option><option value="3">≥ 110</option>
+                    </select>
+                    <label class="nav-label">Hemoglobin (Hb)</label>
+                    <select id="oak-hb" class="ee-select" onchange="runCalculation('oakland')">
+                        <option value="22">< 70</option><option value="17">70-89</option><option value="13">90-109</option><option value="8">110-129</option><option value="4" selected>130-159</option><option value="0">≥ 160</option>
+                    </select>
+                    <label class="ee-check-group" style="margin-top:20px;"><input type="checkbox" id="oak-prev" onchange="runCalculation('oakland')"> Previous admission with LGIB</label>
+                    <label class="ee-check-group"><input type="checkbox" id="oak-dre" onchange="runCalculation('oakland')"> Blood on DRE</label>
+                </div>
+            </div>
+        `,
+        footer_note: "ACPGBI Guidelines recommend Oakland scoring to stratify risk of intervention or rebleeding.",
+        calculate: function() {
+            const age = parseInt(document.getElementById('oak-age')?.value) || 0;
+            const gender = parseInt(document.getElementById('oak-gender')?.value) || 0;
+            const bp = parseInt(document.getElementById('oak-bp')?.value) || 0;
+            const hr = parseInt(document.getElementById('oak-hr')?.value) || 0;
+            const hb = parseInt(document.getElementById('oak-hb')?.value) || 0;
+            const prev = document.getElementById('oak-prev')?.checked ? 1 : 0;
+            const dre = document.getElementById('oak-dre')?.checked ? 1 : 0;
+
+            const score = age + gender + bp + hr + hb + prev + dre;
             
-            <label class="nav-label">Where is the pain located?</label>
-            <select id="tk-pain" class="ee-select" onchange="runCalculation('topkat')">
-                <option value="medial">Inside of Knee Only (Medial)</option>
-                <option value="global">All Over / Behind Cap (Global)</option>
-            </select>
-
-            <label class="nav-label">Modeled Priority: Durability vs Function</label>
-            <input type="range" min="0" max="100" value="50" style="width:100%; cursor:pointer;" id="tk-priority" oninput="runCalculation('topkat')">
-            <div style="font-size:11px; color:#666; display:flex; justify-content:space-between; margin-top:5px; margin-bottom:15px;">
-                <span>Durability Modeling</span><span>Functional Modeling</span>
-            </div>
-        `,
-        footer_note: "Combines TOPKAT functional aggregates with National Joint Registry lifetime revision data.",
-        calculate: function() {
-            const age = parseInt(document.getElementById('tk-age')?.value) || 65;
-            const location = document.getElementById('tk-pain')?.value || 'medial';
-            const priority = parseInt(document.getElementById('tk-priority')?.value) || 50;
-
-            let baseRiskTKR = age < 55 ? 15 : (age < 70 ? 5 : 2);
-            let baseRiskUKR = age < 55 ? 25 : (age < 70 ? 10 : 3);
-            const funcTKR = 75, funcUKR = 90;
-
-            // COMPLIANT TOPKAT: Removes "Recommendations". Focuses purely on data matching and exclusion criteria.
-            if (location === 'global') {
-                return {
-                    chartType: 'bar', customXLabels: ["Total Knee (TKR)", "Partial (Excluded from UKR Pathway)"],
-                    primaryData: [funcTKR, 0], secondaryData: [baseRiskTKR, 0],
-                    primaryLabel: 'Function Score (0-100)', secondaryLabel: 'Lifetime Revision Risk (%)',
-                    secondaryColor: '#c0392b', labelY: "Score / Risk %", yMin: 0,
-                    outputHTML: `<strong>Profile Match: Total Knee (TKR) Pathway.</strong><br>Global/Patellofemoral pain patterns were generally excluded from the UKR arm in the TOPKAT trial methodology.`, outputColor: '#2c3e50'
-                };
+            let htmlOut = `<strong>Oakland Score: ${score} / 35</strong><br>`;
+            let colorOut = "#dc2626";
+            
+            if (score <= 8) {
+                htmlOut += `<span style="color:#16a34a;"><strong>< 5% risk</strong> of rebleeding, transfusion, or readmission. Supports discharge and outpatient investigation.</span>`;
+                colorOut = "#16a34a";
             } else {
-                let recHTML = `<strong>Comparative Statistical Profile:</strong><br>Partial Knee (UKR) aligns with higher functional outcomes but carries a higher lifetime revision risk (${baseRiskUKR}%). Total Knee (TKR) carries greater statistical durability (${baseRiskTKR}% revision probability).`;
-                let recColor = "#f39c12";
-                if (priority > 60) { recHTML = `<strong>Statistical Alignment: Functional Priority.</strong><br>Modeling for 'Natural Feel' maps to UKR outcomes. Note: Lifetime revision risk is elevated for this cohort (${baseRiskUKR}% vs ${baseRiskTKR}%).`; recColor = "#27ae60"; }
-                else if (priority < 40) { recHTML = `<strong>Statistical Alignment: Durability Priority.</strong><br>Modeling for 'Durability' maps to TKR outcomes. Lower risk of lifetime revision for this cohort (~${baseRiskTKR}%).`; recColor = "#2980b9"; }
-
-                return {
-                    chartType: 'bar', customXLabels: ["Total Knee (TKR)", "Partial Knee (UKR)"],
-                    primaryData: [funcTKR, funcUKR], secondaryData: [baseRiskTKR, baseRiskUKR],
-                    primaryLabel: 'Function Score (0-100)', secondaryLabel: 'Lifetime Revision Risk (%)',
-                    secondaryColor: '#c0392b', labelY: "Score / Risk %", yMin: 0,
-                    outputHTML: recHTML, outputColor: recColor
-                };
+                htmlOut += `<span style="color:#dc2626;"><strong>Unacceptably high risk</strong> of rebleeding, transfusion, or therapeutic intervention. Supports inpatient investigation.</span>`;
             }
-        }
-    },
 
-    nature: {
-        category: "Specialty Pathways", type: "calculated", shortName: "Tonsils (NAtuRE)",
-        title: "Adult Tonsillectomy Outcomes", subtitle: "Surgery vs. Conservative Management",
-        source: "The Lancet / NAtuRE Cohort", color: "#14b8a6",
-        xAxisLabels: ['Baseline', '6m', '12m', '18m', '24m'],
-        baseline_surg: [100, 95, 92, 90, 88], baseline_cons: [100, 60, 45, 35, 30],
-        controlsHTML: `
-            <label class="ee-check-group"><input type="checkbox" id="ent-smoke" onchange="runCalculation('nature')"> Current Smoker</label>
-        `,
-        footer_note: "Model integrates smoking status as a known statistical risk factor for delayed mucosal healing.",
-        calculate: function() {
-            const smokeMod = document.getElementById('ent-smoke')?.checked ? 0.90 : 1.0; 
             return {
-                primaryData: this.baseline_surg.map((s, i) => i === 0 ? 100 : s * smokeMod),
-                secondaryData: this.baseline_cons,
-                primaryLabel: "Adult Tonsillectomy", secondaryLabel: "Conservative Management",
-                labelY: "Prob. Remaining Episode-Free (%)"
+                chartType: 'bar', customXLabels: ["Calculated Patient Score", "Safe Discharge Threshold"],
+                primaryData: [score, 0], secondaryData: [0, 8],
+                primaryLabel: "Oakland Score", secondaryLabel: "Threshold (≤ 8)",
+                labelY: "Points", yMax: 35,
+                outputHTML: htmlOut, outputColor: colorOut
             };
         }
     },
 
-    eclipse: {
-        category: "Specialty Pathways", type: "calculated", shortName: "HMB (ECLIPSE)",
-        title: "ECLIPSE Trial: 10-Year Data", subtitle: "Mirena Coil (LNG-IUS) vs. Hysterectomy",
-        source: "The Lancet", color: "#ec4899",
-        xAxisLabels: ['Baseline', '1 Year', '2 Years', '5 Years', '10 Years'],
-        baseline_hyst: [30, 95, 96, 96, 97], baseline_mirena: [30, 85, 82, 80, 78],
+    tokyo: {
+        category: "Clinical Practice Tools", type: "calculated", shortName: "Cholecystitis (Tokyo)",
+        title: "Acute Cholecystitis Risk", subtitle: "Tokyo Guidelines (TG18) Severity Grading",
+        source: "Okamoto K, et al. J Hepatobiliary Pancreat Sci (2018)", color: "#d97706",
         controlsHTML: `
-            <label class="nav-label">Primary Intervention</label>
-            <select id="gyn-path" class="ee-select" onchange="runCalculation('eclipse')">
-                <option value="mirena">Mirena Coil (LNG-IUS)</option><option value="hyst">Surgical Hysterectomy</option>
-            </select>
-            <label class="ee-check-group"><input type="checkbox" id="gyn-fibroid" onchange="runCalculation('eclipse')"> Large Uterine Fibroids</label>
-        `,
-        footer_note: "ECLIPSE tracks Quality of Life (MMAS). Chart synthesizes comparative outcomes.",
-        calculate: function() {
-            const path = document.getElementById('gyn-path')?.value || 'mirena';
-            const fMod = document.getElementById('gyn-fibroid')?.checked ? 0.85 : 1.0; 
-            const base = path === 'mirena' ? this.baseline_mirena : this.baseline_hyst;
-            const comp = path === 'mirena' ? this.baseline_hyst : this.baseline_mirena;
-            return {
-                primaryData: base.map((s, i) => (path === 'mirena' && i > 0) ? s * fMod : s),
-                secondaryData: comp,
-                primaryLabel: path === 'mirena' ? "Mirena Coil (Adjusted)" : "Surgical Hysterectomy",
-                secondaryLabel: path === 'mirena' ? "Surgical Hysterectomy" : "Mirena Coil",
-                labelY: "MMAS Quality of Life Score (0-100)"
-            };
-        }
-    },
-
-    cataract: {
-        category: "Specialty Pathways", type: "calculated", shortName: "Cataract (NOD)",
-        title: "National Ophthalmology Database", subtitle: "Cataract Surgery Risk & Visual Recovery",
-        source: "RCOphth NOD Data", color: "#eab308",
-        xAxisLabels: ['Pre-Op', '1 Wk', '4 Wks', '3 Mos', '6 Mos', '12 Mos'],
-        baseline_success: [20, 85, 95, 96, 96, 96],
-        controlsHTML: `
-            <div style="background:#fef3c7; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #eab308;">
-                <label class="ee-check-group" style="color:#b45309; font-weight:800;">
-                    <input type="checkbox" id="cat-alpha" onchange="runCalculation('cataract')"> Alpha-Blockers (e.g., Tamsulosin)?
-                </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label class="nav-label">Surgical Fitness</label>
+                    <select id="tg-asa" class="ee-select" onchange="runCalculation('tokyo')">
+                        <option value="1">ASA 1-2 (Healthy/Mild)</option><option value="3">ASA 3+ (Severe systemic)</option>
+                    </select>
+                    <label class="nav-label">Charlson Comorbidity Index (CCI)</label>
+                    <input type="number" id="tg-cci" class="ee-select" value="0" min="0" oninput="runCalculation('tokyo')">
+                </div>
+                <div>
+                    <label class="nav-label">Severity Indicators</label>
+                    <label class="ee-check-group"><input type="checkbox" id="tg-organ" onchange="runCalculation('tokyo')"> Organ Failure (CV, Neuro, Resp, Renal)</label>
+                    <label class="ee-check-group"><input type="checkbox" id="tg-wcc" onchange="runCalculation('tokyo')"> WCC > 18</label>
+                    <label class="ee-check-group"><input type="checkbox" id="tg-mass" onchange="runCalculation('tokyo')"> Palpable RUQ Mass</label>
+                    <label class="ee-check-group"><input type="checkbox" id="tg-dur" onchange="runCalculation('tokyo')"> Symptoms > 72 hours</label>
+                    <label class="ee-check-group"><input type="checkbox" id="tg-inf" onchange="runCalculation('tokyo')"> Marked local inflammation (e.g. gangrenous)</label>
+                </div>
             </div>
-            <label class="ee-check-group"><input type="checkbox" id="cat-diab" onchange="runCalculation('cataract')"> Diabetic Retinopathy</label>
         `,
-        footer_note: "Variables (Alpha-blockers, Retinopathy) integrated as statistical modifiers against standard baseline recovery.",
+        footer_note: "TG18 composite grading used to determine safety of early laparoscopic cholecystectomy vs conservative optimization.",
         calculate: function() {
-            const ifisRisk = document.getElementById('cat-alpha')?.checked ? 0.82 : 1.0; 
-            const diabRisk = document.getElementById('cat-diab')?.checked ? 0.90 : 1.0;
+            const asa = parseInt(document.getElementById('tg-asa')?.value) || 1;
+            const cci = parseInt(document.getElementById('tg-cci')?.value) || 0;
+            
+            const organF = document.getElementById('tg-organ')?.checked;
+            const modRisk = document.getElementById('tg-wcc')?.checked || document.getElementById('tg-mass')?.checked || document.getElementById('tg-dur')?.checked || document.getElementById('tg-inf')?.checked;
+
+            let grade = "Grade 1"; let gradeNum = 1;
+            if (organF) { grade = "Grade 3"; gradeNum = 3; }
+            else if (modRisk) { grade = "Grade 2"; gradeNum = 2; }
+
+            let risk = "High";
+            if ((grade === "Grade 1" || grade === "Grade 2") && asa < 3 && cci < 6) { risk = "Low"; }
+            if (grade === "Grade 3" && asa < 3 && cci < 4) { risk = "Low"; }
+
+            let outHTML = `<strong>Tokyo Classification: ${grade}</strong><br>`;
+            if (risk === 'Low' && grade === 'Grade 1') outHTML += `Low risk of adverse outcome. Laparoscopic cholecystectomy advisable.`;
+            else if (risk === 'Low' && grade === 'Grade 2') outHTML += `Intermediate risk of adverse outcome. Consider subtotal/fundus-first approach.`;
+            else if (risk === 'Low' && grade === 'Grade 3') outHTML += `High risk of adverse outcome. Pre-optimize and strongly consider early subtotal/conversion if operating.`;
+            else outHTML += `High risk of adverse outcome. Consider pre-optimization and/or definitive non-operative management.`;
+
             return {
-                primaryData: this.baseline_success.map((s, i) => i === 0 ? s : s * (ifisRisk * diabRisk)),
-                secondaryData: this.baseline_success,
-                primaryLabel: "Modeled Visual Trajectory", secondaryLabel: "Standard Uncomplicated Baseline",
-                labelY: "Prob. of Visual Recovery (%)"
+                chartType: 'bar', customXLabels: ["Severity Grade"],
+                primaryData: [gradeNum], secondaryData: [0],
+                primaryLabel: "Calculated Grade", secondaryLabel: "Baseline",
+                labelY: "TG18 Grade", yMax: 3,
+                outputHTML: outHTML, outputColor: risk === 'Low' ? '#16a34a' : '#d97706'
+            };
+        }
+    },
+
+    gbs: {
+        category: "Clinical Practice Tools", type: "calculated", shortName: "UGI Bleed (GBS)",
+        title: "Upper GI Bleed Risk", subtitle: "Glasgow-Blatchford Score (GBS)",
+        source: "Blatchford O, et al. Lancet (2000)", color: "#8b5cf6",
+        controlsHTML: `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label class="nav-label">Urea</label>
+                    <select id="gbs-urea" class="ee-select" onchange="runCalculation('gbs')">
+                        <option value="0">< 6.5</option><option value="2">6.5 - 8</option><option value="3">8 - 10</option><option value="4">10 - 25</option><option value="6">> 25</option>
+                    </select>
+                    <label class="nav-label">Hemoglobin (Hb)</label>
+                    <select id="gbs-hb" class="ee-select" onchange="runCalculation('gbs')">
+                        <option value="0">> 130</option><option value="1">120 - 130</option><option value="3">100 - 120</option><option value="6">< 100</option>
+                    </select>
+                    <label class="nav-label">Systolic BP</label>
+                    <select id="gbs-bp" class="ee-select" onchange="runCalculation('gbs')">
+                        <option value="0">> 109</option><option value="1">100 - 109</option><option value="2">90 - 99</option><option value="3">< 90</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="ee-check-group" style="margin-top:25px;"><input type="checkbox" id="gbs-male" onchange="runCalculation('gbs')"> Gender: Male</label>
+                    <label class="ee-check-group"><input type="checkbox" id="gbs-hr" onchange="runCalculation('gbs')"> HR ≥ 100</label>
+                    <label class="ee-check-group"><input type="checkbox" id="gbs-mel" onchange="runCalculation('gbs')"> Malaena Present</label>
+                    <label class="ee-check-group"><input type="checkbox" id="gbs-sync" onchange="runCalculation('gbs')"> Syncope</label>
+                    <label class="ee-check-group"><input type="checkbox" id="gbs-liver" onchange="runCalculation('gbs')"> Hepatic Disease</label>
+                    <label class="ee-check-group"><input type="checkbox" id="gbs-card" onchange="runCalculation('gbs')"> Cardiac Failure</label>
+                </div>
+            </div>
+        `,
+        footer_note: "WSES and BSG guidelines recommend GBS to stratify outpatient vs urgent endoscopic intervention.",
+        calculate: function() {
+            let score = parseInt(document.getElementById('gbs-urea')?.value) || 0;
+            score += parseInt(document.getElementById('gbs-bp')?.value) || 0;
+            
+            const isMale = document.getElementById('gbs-male')?.checked;
+            const hbVal = parseInt(document.getElementById('gbs-hb')?.value) || 0;
+            
+            // Gender specific Hb scoring based on original Blatchford logic
+            if (isMale) {
+                if (hbVal === 1) score += 1;
+                else if (hbVal === 3) score += 3;
+                else if (hbVal === 6) score += 6;
+            } else { // Female
+                if (hbVal === 3) score += 1;
+                else if (hbVal === 6) score += 6;
+            }
+
+            if (document.getElementById('gbs-hr')?.checked) score += 1;
+            if (document.getElementById('gbs-mel')?.checked) score += 1;
+            if (document.getElementById('gbs-sync')?.checked) score += 2;
+            if (document.getElementById('gbs-liver')?.checked) score += 2;
+            if (document.getElementById('gbs-card')?.checked) score += 2;
+
+            let outHTML = `<strong>GBS Score: ${score} / 23</strong><br>`;
+            let outColor = "#8b5cf6";
+            if (score <= 1) { outHTML += "Low risk (<5%) of intervention - suitable for OP management."; outColor = "#10b981"; }
+            else if (score >= 7) { outHTML += "Very High risk of intervention - emergent OGD <12 hrs indicated."; outColor = "#dc2626"; }
+            else { outHTML += "Intermediate-high risk of intervention - urgent OGD <24hrs indicated."; }
+
+            return {
+                chartType: 'bar', customXLabels: ["Calculated GBS", "Safe Discharge (≤1)"],
+                primaryData: [score, 0], secondaryData: [0, 1],
+                primaryLabel: "Patient Score", secondaryLabel: "Safe Threshold",
+                labelY: "GBS Score", yMax: 23,
+                outputHTML: outHTML, outputColor: outColor
+            };
+        }
+    },
+
+    pancreatitis: {
+        category: "Clinical Practice Tools", type: "calculated", shortName: "Pancreatitis (BISAP)",
+        title: "Acute Pancreatitis Severity", subtitle: "BISAP Bedside Index",
+        source: "Wu BU, et al. Gut (2008)", color: "#0ea5e9",
+        controlsHTML: `
+            <div style="background:#f0f9ff; padding:15px; border-radius:8px; margin-bottom:15px; border-left:4px solid #0ea5e9;">
+                <label class="nav-label">SIRS Criteria (Need ≥ 2)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <label class="ee-check-group"><input type="checkbox" id="bi-temp" onchange="runCalculation('pancreatitis')"> Temp < 36 or > 38</label>
+                    <label class="ee-check-group"><input type="checkbox" id="bi-hr" onchange="runCalculation('pancreatitis')"> HR > 90</label>
+                    <label class="ee-check-group"><input type="checkbox" id="bi-rr" onchange="runCalculation('pancreatitis')"> RR > 20</label>
+                    <label class="ee-check-group"><input type="checkbox" id="bi-wcc" onchange="runCalculation('pancreatitis')"> WCC < 4 or > 12</label>
+                </div>
+            </div>
+            <label class="ee-check-group"><input type="checkbox" id="bi-urea" onchange="runCalculation('pancreatitis')"> Urea > 8.9 mmol/L</label>
+            <label class="ee-check-group"><input type="checkbox" id="bi-del" onchange="runCalculation('pancreatitis')"> Impaired mental status (Delirium/GCS < 15)</label>
+            <label class="ee-check-group"><input type="checkbox" id="bi-age" onchange="runCalculation('pancreatitis')"> Age ≥ 60</label>
+            <label class="ee-check-group"><input type="checkbox" id="bi-eff" onchange="runCalculation('pancreatitis')"> Pleural Effusion Present</label>
+        `,
+        footer_note: "WSES 2019 guidelines recommend BISAP for early prediction of severe acute pancreatitis.",
+        calculate: function() {
+            let sirsCount = 0;
+            if (document.getElementById('bi-temp')?.checked) sirsCount++;
+            if (document.getElementById('bi-hr')?.checked) sirsCount++;
+            if (document.getElementById('bi-rr')?.checked) sirsCount++;
+            if (document.getElementById('bi-wcc')?.checked) sirsCount++;
+
+            let score = 0;
+            if (sirsCount >= 2) score++;
+            if (document.getElementById('bi-urea')?.checked) score++;
+            if (document.getElementById('bi-del')?.checked) score++;
+            if (document.getElementById('bi-age')?.checked) score++;
+            if (document.getElementById('bi-eff')?.checked) score++;
+
+            let mort = "0.2%"; let severity = "Low";
+            if (score === 1) { mort = "0.5%"; }
+            else if (score === 2) { mort = "1.9%"; }
+            else if (score === 3) { mort = "5.3%"; severity = "Severe Disease Likely"; }
+            else if (score === 4) { mort = "12.7%"; severity = "Severe Disease Likely"; }
+            else if (score === 5) { mort = "22.5%"; severity = "Severe Disease Likely"; }
+
+            let outHTML = `<strong>BISAP Score: ${score} / 5</strong><br>`;
+            outHTML += `Predicted Mortality: ${mort}. `;
+            if (score >= 3) outHTML += `<span style="color:#dc2626; font-weight:bold;">${severity}</span>`;
+
+            return {
+                chartType: 'bar', customXLabels: ["BISAP Score"],
+                primaryData: [score], secondaryData: [0],
+                primaryLabel: "Patient Score", secondaryLabel: "Baseline",
+                labelY: "Points", yMax: 5,
+                outputHTML: outHTML, outputColor: score >= 3 ? "#dc2626" : "#0ea5e9"
             };
         }
     }
