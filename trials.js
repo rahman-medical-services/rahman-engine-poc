@@ -183,10 +183,14 @@ const TRIAL_DATA = {
                 </div>
                 <div class="rh-group" style="margin-top:20px;">
                     <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> Snore loudly?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> Often feel tired/fatigued?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> Observed apnea during sleep?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> BMI greater than 35?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (P) High blood pressure?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> (B) BMI > 35?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (A) Age > 50?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (N) Neck > 16in/40cm?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (G) Gender: Male?</label>
                 </div>
                 <div class="rh-group" style="margin-top:20px;">
                     <label class="nav-label">3. Clinical Modifiers</label>
