@@ -1,15 +1,15 @@
 /**
- * OutcomeLogic™ Export Handler - FIX 1.8
- * Strategy: Multi-Screen Resolution Decoupling
+ * OutcomeLogic™ Export Handler - FIX 1.9
+ * Strategy: "Stunt Double" (A4 Hardware Decoupling)
  */
 
 window.executePDFExport = async function(filename, btnElement) {
-    const element = document.getElementById('printable-area');
+    const originalElement = document.getElementById('printable-area');
     const btn = btnElement || document.querySelector('button[onclick*="triggerExport"]');
     
-    if (!element) return;
+    if (!originalElement) return;
 
-    // 1. UI LOCKDOWN & HIDE BUTTON
+    // 1. UI LOCKDOWN
     const originalText = btn.innerText;
     btn.innerText = "Preparing...";
     btn.disabled = true;
@@ -23,8 +23,41 @@ window.executePDFExport = async function(filename, btnElement) {
             chartDataURL = canvas.toDataURL('image/png', 1.0);
         }
 
-        // 3. VIRTUAL VIEWPORT FORCING (The Fix for Wide Screens)
-        // We tell the engine to ignore the monitor and use a 794px A4 canvas
+        // 3. CREATE THE "STUNT DOUBLE" (Hidden A4 Container)
+        const stuntDouble = document.createElement('div');
+        Object.assign(stuntDouble.style, {
+            position: 'absolute',
+            left: '-9999px',
+            top: '0',
+            width: '794px', // Hard-coded A4 width
+            backgroundColor: 'white',
+            padding: '40px'
+        });
+
+        // Clone the content into the stunt double
+        const clone = originalElement.cloneNode(true);
+        stuntDouble.appendChild(clone);
+        document.body.appendChild(stuntDouble);
+
+        // 4. FORMAT THE STUNT DOUBLE (Force Vertical Stack)
+        const grid = clone.querySelector('.grid');
+        if (grid) {
+            grid.style.display = 'block'; // Simplest way to force vertical stacking
+            grid.style.width = '100%';
+        }
+
+        const ghostCanvas = clone.querySelector('canvas');
+        if (ghostCanvas && chartDataURL) {
+            const img = new Image();
+            img.src = chartDataURL;
+            img.style.width = '100%';
+            img.style.maxWidth = '650px';
+            img.style.display = 'block';
+            img.style.margin = '20px auto';
+            ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
+        }
+
+        // 5. PDF EXECUTION (Pointed at the Stunt Double)
         const opt = {
             margin: [10, 10, 10, 10],
             filename: filename + '.pdf',
@@ -32,56 +65,21 @@ window.executePDFExport = async function(filename, btnElement) {
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
-                // These 4 lines prevent multi-screen resolution bugs
                 width: 794,
-                windowWidth: 794, 
-                scrollX: 0,
-                scrollY: 0,
-                onclone: (clonedDoc) => {
-                    const clonedElement = clonedDoc.getElementById('printable-area');
-                    if (!clonedElement) return;
-
-                    // Force A4 Styles in the virtual document
-                    Object.assign(clonedElement.style, {
-                        width: '794px',
-                        padding: '40px',
-                        background: 'white',
-                        display: 'block',
-                        position: 'static'
-                    });
-
-                    // Force the vertical mobile-style stack for the PDF
-                    const grid = clonedElement.querySelector('.grid');
-                    if (grid) {
-                        grid.style.display = 'flex';
-                        grid.style.flexDirection = 'column';
-                        grid.style.gap = '30px';
-                        grid.style.width = '100%';
-                    }
-
-                    // Inject the static chart image
-                    const ghostCanvas = clonedElement.querySelector('canvas');
-                    if (ghostCanvas && chartDataURL) {
-                        const img = clonedDoc.createElement('img');
-                        img.src = chartDataURL;
-                        img.style.width = '100%';
-                        img.style.maxWidth = '650px';
-                        img.style.display = 'block';
-                        img.style.margin = '20px auto';
-                        ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
-                    }
-                }
+                windowWidth: 794 // No longer relies on your monitor's width
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // 4. EXECUTION
-        await html2pdf().set(opt).from(element).save();
+        await html2pdf().set(opt).from(stuntDouble).save();
+
+        // 6. CLEANUP
+        document.body.removeChild(stuntDouble);
 
     } catch (err) {
         console.error("PDF Export Failure:", err);
     } finally {
-        // 5. RESTORE UI
+        // 7. RESTORE UI
         btn.innerText = originalText;
         btn.disabled = false;
         btn.style.visibility = 'visible'; 
