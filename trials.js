@@ -56,15 +56,21 @@ relapstone: {
             const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones > 1 ? 'Multiple stones' : 'Single stone'}${ercpMod > 1 ? ', Post-ERCP' : ''}.`;
 
             // Updated Return Pattern: Using rawData to prevent cross-module leaks
-            return {
-                primaryData: this.baseline.map(s => Math.pow(s, hrTotal) * 100),
-                secondaryData: this.baseline.map(s => s * 100),
-                primaryLabel: "Selected Patient Profile", 
-                secondaryLabel: "Standard Cohort Average",
-                labelY: "Probability of Pain-Free (%)",
-                synthesisText: synth,
-                rawData: { mainMetric: prob12m.toFixed(0) + "%", label: "12m Symptom-Free Prob.", type: 'evidence' }
-            };
+            // --- Inside trials.js > relapstone > calculate ---
+return {
+    primaryData: this.baseline.map(s => Math.pow(s, hrTotal) * 100),
+    secondaryData: this.baseline.map(s => s * 100),
+    primaryLabel: "Selected Patient Profile", 
+    secondaryLabel: "Standard Cohort Average",
+    labelY: "Probability of Pain-Free (%)",
+    synthesisText: synth,
+    rawData: { 
+        mainMetric: prob12m.toFixed(0) + "%", 
+        label: "12m Symptom-Free Prob.", 
+        type: 'evidence',
+        chartPoints: this.baseline.map(s => Math.pow(s, hrTotal) * 100) // Added for Consent Chart
+    }
+};
         }
     },
 
