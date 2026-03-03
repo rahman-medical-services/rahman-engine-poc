@@ -313,11 +313,10 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
-// --- BULLETPROOF PDF EXPORT ENGINE (PORTRAIT A4 EDITION) ---
+// --- BULLETPROOF PDF EXPORT ENGINE (TRUE A4 PORTRAIT) ---
 
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
-    // Safely grab the button that was clicked
     const btn = window.event ? window.event.target : document.querySelector('button.active'); 
     const originalText = btn ? btn.innerText : 'Download Evidence PDF';
     
@@ -329,64 +328,53 @@ async function exportToPDF(filename) {
     }
     window.scrollTo(0, 0);
 
-    // 2. Inject Temporary A4 Print Stylesheet
-    // This locks the width safely without destroying your existing CSS classes
-    const printStyle = document.createElement('style');
-    printStyle.id = 'pdf-print-styles';
-    printStyle.innerHTML = `
-        #printable-area {
-            width: 800px !important;
-            min-width: 800px !important;
-            max-width: 800px !important;
-            margin: 0 auto !important; /* Center safely */
-            padding: 30px !important;
-            box-sizing: border-box !important;
-            background: white !important;
-        }
-        #printable-area .grid {
-            display: flex !important;
-            flex-direction: column !important; /* Forces layout into a vertical stack */
-            gap: 20px !important;
-        }
-        #printable-area .ee-sidebar {
-            width: 100% !important;
-            border-right: none !important;
-            border-bottom: 2px solid #e2e8f0 !important;
-            padding-bottom: 20px !important;
-        }
-    `;
-    document.head.appendChild(printStyle);
+    // 2. Unlock the Viewport (Fixes the right-side cut-off)
+    // This allows the PDF engine to capture elements that extend beyond your physical screen
+    const origBodyOverflow = document.body.style.overflow;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'visible';
+    document.documentElement.style.overflow = 'visible';
 
-    // 3. Pause to allow mobile browsers (Safari) to physically repaint the screen
-    await new Promise(r => setTimeout(r, 200));
+    // 3. Save original layout styles
+    const origWidth = element.style.width;
+    const origMaxWidth = element.style.maxWidth;
+    const origMinWidth = element.style.minWidth;
+    const origMargin = element.style.margin;
 
-    // 4. The Chart.js "Freeze" Trick
-    // Swap live chart for a static image to prevent resize explosions
-    const canvas = document.getElementById('mainChart');
-    let tempImg = null;
-    if (canvas) {
-        tempImg = new Image();
-        tempImg.src = canvas.toDataURL('image/png', 1.0);
-        tempImg.style.width = '100%';
-        tempImg.style.maxWidth = '600px'; 
-        tempImg.style.margin = '0 auto';
-        tempImg.style.display = 'block';
-        
-        canvas.style.display = 'none';
-        canvas.parentNode.insertBefore(tempImg, canvas);
+    // 4. Force exact A4 Portrait pixel dimensions (794px wide)
+    element.style.width = '794px';
+    element.style.minWidth = '794px';
+    element.style.maxWidth = '794px';
+    element.style.margin = '0'; // Push to top-left to guarantee camera alignment
+
+    // 5. Force the internal grid into a vertical Portrait stack
+    const grid = element.querySelector('.grid');
+    let origGridDisplay = '';
+    let origGridDirection = '';
+    if (grid) {
+        origGridDisplay = grid.style.display;
+        origGridDirection = grid.style.flexDirection;
+        grid.style.display = 'flex';
+        grid.style.flexDirection = 'column';
     }
 
-    // 5. PDF Configuration (Strict A4 Portrait)
+    // 6. Tell Chart.js to recalculate its size for the new A4 layout
+    if (currentChart) {
+        currentChart.resize();
+    }
+
+    // Pause for 150ms to let the browser physically repaint the screen
+    await new Promise(r => setTimeout(r, 150));
+
+    // 7. PDF Engine Configuration
     const opt = {
         margin: 10, 
         filename: filename + '-Evidence.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 2, // Best balance of resolution and mobile memory limit
+            scale: 2, // Standard high-res scale, prevents mobile memory blowouts
             useCORS: true,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: 800 // Forces mobile to render like a desktop
+            windowWidth: 794 // Tells the camera exactly how wide the frame is
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
     };
@@ -399,32 +387,35 @@ async function exportToPDF(filename) {
         alert("Failed to export the document. Please check console."); 
     } 
     finally { 
-        // 6. The Thaw: Instantly restore the UI
-        const injectedStyle = document.getElementById('pdf-print-styles');
-        if (injectedStyle) {
-            document.head.removeChild(injectedStyle); // Rip out the temporary CSS
+        // 8. Restore the Layout
+        element.style.width = origWidth;
+        element.style.minWidth = origMinWidth;
+        element.style.maxWidth = origMaxWidth;
+        element.style.margin = origMargin;
+
+        if (grid) {
+            grid.style.display = origGridDisplay;
+            grid.style.flexDirection = origGridDirection;
         }
-        
-        if (canvas && tempImg && tempImg.parentNode) {
-            tempImg.parentNode.removeChild(tempImg); 
-            canvas.style.display = 'block'; 
-            
-            // THE CHART SPILLOVER FIX:
-            // Give the browser 50ms to reflow the CSS back to normal, 
-            // THEN tell the chart to redraw itself to fit the normal box.
-            setTimeout(() => {
-                if (currentChart) {
-                    currentChart.resize();
-                    currentChart.update(); 
-                }
-            }, 50);
-        }
-        
+
+        document.body.style.overflow = origBodyOverflow;
+        document.documentElement.style.overflow = origHtmlOverflow;
+
         if (btn) {
             btn.style.display = 'block';
             btn.innerText = originalText; 
             btn.disabled = false; 
         }
+
+        // 9. The Chart Spillover Fix
+        // Let the DOM fully return to its normal responsive state, 
+        // THEN tell Chart.js to snap back to fit the box.
+        setTimeout(() => {
+            if (currentChart) {
+                currentChart.resize();
+                currentChart.update('none'); // Update silently without animation
+            }
+        }, 100);
     }
 }
 
