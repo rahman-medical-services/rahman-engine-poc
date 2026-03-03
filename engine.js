@@ -313,8 +313,10 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
+// PDF Generation attempt
+
 async function exportToPDF(filename) {
-    const originalElement = document.getElementById('printable-area');
+    const element = document.getElementById('printable-area');
     const btn = window.event ? window.event.target : null;
     const originalText = btn ? btn.innerText : 'Download PDF';
 
@@ -323,57 +325,11 @@ async function exportToPDF(filename) {
         btn.disabled = true;
     }
 
-    // 1. Create the Ghost Clone and remove ID to prevent conflicts
-    const ghost = originalElement.cloneNode(true);
-    ghost.id = 'pdf-ghost';
-    
-    // 2. Position it behind the main app (Hidden but 'visible' to camera)
-    Object.assign(ghost.style, {
-        position: 'fixed',
-        left: '0',
-        top: '0',
-        width: '794px',
-        backgroundColor: 'white',
-        zIndex: '-9999', // Behind everything
-        opacity: '1',
-        visibility: 'visible',
-        display: 'block'
-    });
-    document.body.appendChild(ghost);
+    // 1. Capture the current chart as a high-res image string BEFORE we start
+    // This ensures the graph data is ready to be injected into the PDF
+    const canvas = document.getElementById('mainChart');
+    const chartDataURL = canvas ? canvas.toDataURL('image/png', 1.0) : null;
 
-    // 3. Force Portrait Layout
-    const grid = ghost.querySelector('.grid');
-    if (grid) {
-        grid.style.display = 'flex';
-        grid.style.flexDirection = 'column';
-        grid.style.gap = '20px';
-    }
-
-    // 4. Transform Chart to Image with a "Ready" Promise
-    const originalCanvas = originalElement.querySelector('canvas');
-    const ghostCanvasPlace = ghost.querySelector('canvas');
-    
-    if (originalCanvas && ghostCanvasPlace) {
-        const chartImg = new Image();
-        
-        // Wrap in a promise to ensure image is loaded before PDF snaps
-        const imageLoadPromise = new Promise((resolve) => {
-            chartImg.onload = resolve;
-            chartImg.src = originalCanvas.toDataURL('image/png', 1.0);
-        });
-
-        chartImg.style.width = '100%';
-        chartImg.style.maxWidth = '650px';
-        chartImg.style.display = 'block';
-        chartImg.style.margin = '0 auto';
-        
-        ghostCanvasPlace.parentNode.replaceChild(chartImg, ghostCanvasPlace);
-        
-        // Wait for the image to actually exist in memory
-        await imageLoadPromise;
-    }
-
-    // 5. PDF Settings
     const opt = {
         margin: 10,
         filename: filename + '.pdf',
@@ -381,23 +337,52 @@ async function exportToPDF(filename) {
         html2canvas: { 
             scale: 2, 
             useCORS: true,
-            logging: false,
-            width: 794
+            // THE SECRET SAUCE: Modify the document ONLY for the PDF
+            onclone: (clonedDoc) => {
+                const clonedElement = clonedDoc.getElementById('printable-area');
+                
+                // A. Force the A4 Portrait width and clean background
+                Object.assign(clonedElement.style, {
+                    width: '794px',
+                    minWidth: '794px',
+                    maxWidth: '794px',
+                    padding: '30px',
+                    margin: '0',
+                    backgroundColor: 'white'
+                });
+
+                // B. Force the internal grid to stack vertically
+                const grid = clonedElement.querySelector('.grid');
+                if (grid) {
+                    grid.style.display = 'flex';
+                    grid.style.flexDirection = 'column';
+                    grid.style.gap = '20px';
+                }
+
+                // C. Inject the static chart image into the clone
+                const ghostCanvas = clonedElement.querySelector('canvas');
+                if (ghostCanvas && chartDataURL) {
+                    const img = clonedDoc.createElement('img');
+                    img.src = chartDataURL;
+                    img.style.width = '100%';
+                    img.style.maxWidth = '650px';
+                    img.style.display = 'block';
+                    img.style.margin = '0 auto';
+                    ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
+                }
+            }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
-        // Short pause for the DOM to settle
-        await new Promise(r => setTimeout(r, 100));
-        await html2pdf().set(opt).from(ghost).save();
+        // We run it on the ORIGINAL element, but the 'onclone' hook 
+        // handles the "A4 Portrait" transformation behind the scenes.
+        await html2pdf().set(opt).from(element).save();
     } catch (err) {
         console.error("PDF Export Error:", err);
+        alert("Export failed. Please try again.");
     } finally {
-        // 6. Cleanup
-        if (document.getElementById('pdf-ghost')) {
-            document.body.removeChild(ghost);
-        }
         if (btn) {
             btn.innerText = originalText;
             btn.disabled = false;
