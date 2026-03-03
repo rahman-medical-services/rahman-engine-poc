@@ -1,20 +1,16 @@
 /**
- * OutcomeLogic™ Export Handler - NATIVE PRINT VERSION
- * Strategy: Browser-Native PDF Generation (Resolution Independent)
+ * OutcomeLogic™ Export Handler - v2.0 (Native)
+ * Decoupled from screen resolution and viewport bugs
  */
-
-window.executePDFExport = async function(filename, btnElement) {
-    // 1. We don't need to 'lock' the UI or hide buttons manually 
-    // because CSS @media print will handle it perfectly.
-    
-    // 2. Set the document title temporarily (this becomes the default PDF filename)
+window.executePDFExport = async function(filename, btn) {
+    // 1. Set document title (this becomes the filename in the print dialog)
     const originalTitle = document.title;
     document.title = filename;
 
-    // 3. Trigger the Native Print Dialog
-    // This allows the user to 'Save as PDF' using the browser's internal engine.
+    // 2. Trigger Print Dialog
+    // User selects 'Save as PDF' - zero clipping, zero redraws
     window.print();
 
-    // 4. Restore the original title
+    // 3. Restore original title
     document.title = originalTitle;
 };
