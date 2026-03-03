@@ -60,38 +60,7 @@ relapstone: {
         }
     },
 
-    inca: {
-        category: "Waitlist Triage & Deflection", type: "calculated", shortName: "Hernia (INCA)",
-        title: "INCA Trial: 12-Year Outcomes", subtitle: "Watchful Waiting vs. Crossover Probability",
-        source: "INCA Trial (12-Year Follow-up)", color: "#142b45",
-        xAxisLabels: ['0', '1y', '2y', '3y', '4y', '5y', '6y', '7y', '8y', '9y', '10y', '11y', '12y'],
-        baseCrossover: [0, 0.12, 0.22, 0.31, 0.39, 0.46, 0.51, 0.55, 0.58, 0.61, 0.63, 0.64, 0.642],
-        controlsHTML: `
-            <label class="nav-label">Initial Symptoms</label>
-            <select id="ee-symptoms" class="ee-select" onchange="runCalculation('inca')">
-                <option value="none">Asymptomatic</option><option value="mild">Mild Discomfort</option>
-            </select>
-            <label class="nav-label">Age at Diagnosis</label>
-            <select id="ee-age" class="ee-select" onchange="runCalculation('inca')">
-                <option value="young">Under 65</option><option value="old">65 or Older</option>
-            </select>
-            <label class="ee-check-group"><input type="checkbox" id="ee-heavy" onchange="runCalculation('inca')"> High Physical Load?</label>
-        `,
-        footer_note: "Model applies hazard ratios (HR) to baseline INCA crossover data. For reference only.",
-        calculate: function() {
-            const symp = document.getElementById('ee-symptoms')?.value || 'none';
-            const age = document.getElementById('ee-age')?.value || 'young';
-            const heavy = document.getElementById('ee-heavy')?.checked;
-
-            const hr = (symp === 'mild' ? 1.45 : 1.0) * (age === 'old' ? 1.25 : 1.0) * (heavy ? 1.30 : 1.0);
-            const risk12y = (1 - Math.pow((1 - 0.642), hr)) * 100;
-
-            const synth = `OUTCOMELOGIC SYNTHESIS (INCA): 12-Year surgical crossover probability is calculated at ${risk12y.toFixed(0)}%. Input Profile: ${age === 'old' ? 'Over 65' : 'Under 65'}, ${symp === 'mild' ? 'Mild Symptoms' : 'Asymptomatic'}, ${heavy ? 'High physical load' : 'Standard load'}. Patient has been provided with observational trajectory data.`;
-
-            return {
-                primaryData: this.baseCrossover.map(val => (1 - Math.pow((1 - val), hr)) * 100),
-                secondaryData: this.baseCrossover.map(v => v * 100),
-                primaryLabel: "Adjusted Crossover Rate", inca: {
+   inca: {
         category: "Waitlist Triage & Deflection", 
         type: "calculated", 
         shortName: "Hernia (INCA)",
@@ -127,10 +96,13 @@ relapstone: {
 
             const synth = `OUTCOMELOGIC SYNTHESIS (INCA): 12-Year surgical crossover probability is calculated at ${risk12y.toFixed(0)}%. Input Profile: ${age === 'old' ? 'Over 65' : 'Under 65'}, ${symp === 'mild' ? 'Mild Symptoms' : 'Asymptomatic'}.`;
 
-            // MANDATORY: Bridge Data to Digital Consent Module
+            // Bridge Data to Digital Consent Module
             window.PatientSession.rawModelData = { 
                 mainMetric: risk12y.toFixed(0) + "%", 
-                label: "12-Year Crossover Prob." 
+                label: "12-Year Crossover Prob.",
+                type: 'evidence',
+                chartPoints: this.baseCrossover.map(val => (1 - Math.pow((1 - val), hr)) * 100),
+                chartLabels: ['0', '3y', '6y', '9y', '12y']
             };
 
             return {
@@ -142,13 +114,8 @@ relapstone: {
                 synthesisText: synth 
             };
         }
-    },secondaryLabel: "Baseline Trial Average",
-                labelY: "Surgery Probability (%)",
-                synthesisText: synth 
-            };
-        }
     },
-
+    
     // ---------------------------------------------------------
     // 2. SHARED DECISION MAKING
     // ---------------------------------------------------------
