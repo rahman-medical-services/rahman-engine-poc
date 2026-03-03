@@ -315,27 +315,56 @@ function renderConsentForm() {
     initSignaturePad();
 }
 
-// --- SIGNATURE PAD LOGIC ---
-function initSignaturePad() {
+// --- SIGNATURE PAD LOGIC ---function initSignaturePad() {
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
+    
     sigCtx = canvas.getContext('2d');
     
-    // Decouple canvas size from monitor resolution
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    // 1. FIX: Force the canvas to match its visual size
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
 
-    canvas.addEventListener('mousedown', () => signatureDrawing = true);
-    canvas.addEventListener('mouseup', () => { signatureDrawing = false; sigCtx.beginPath(); });
-    canvas.addEventListener('mousemove', (e) => {
+    // 2. FIX: Style the line for clinical professional look
+    sigCtx.strokeStyle = "#0f172a";
+    sigCtx.lineWidth = 2.5;
+    sigCtx.lineCap = "round";
+
+    // 3. FIX: Handle BOTH Mouse and Touch events
+    const getPos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - r.left, y: clientY - r.top };
+    };
+
+    const start = (e) => { 
+        signatureDrawing = true; 
+        const pos = getPos(e);
+        sigCtx.beginPath();
+        sigCtx.moveTo(pos.x, pos.y);
+        if (e.touches) e.preventDefault(); // Stop scrolling while signing
+    };
+
+    const move = (e) => {
         if (!signatureDrawing) return;
-        const rect = canvas.getBoundingClientRect();
-        sigCtx.lineWidth = 2.5; 
-        sigCtx.lineCap = 'round'; 
-        sigCtx.strokeStyle = '#0f172a';
-        sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        const pos = getPos(e);
+        sigCtx.lineTo(pos.x, pos.y);
         sigCtx.stroke();
-    });
+        if (e.touches) e.preventDefault();
+    };
+
+    const stop = () => { signatureDrawing = false; };
+
+    // Event Listeners
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', stop);
 }
 
 function clearSignature() {
@@ -382,35 +411,64 @@ function renderChart(id, results, color, xLabels) {
 }
 
 function renderConsentThumbnail(id, item) {
-    const ctx = document.getElementById(id).getContext('2d');
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const type = item.raw?.type;
+    const labels = item.raw?.chartLabels || [];
 
     let chartConfig = {
         type: 'line',
-        data: { labels: [], datasets: [] },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, beginAtZero: true } } }
+        data: { labels: labels, datasets: [] },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                x: { 
+                    display: labels.length > 0,
+                    grid: { display: false },
+                    ticks: { 
+                        font: { size: 10, weight: 'bold' }, 
+                        maxRotation: 0,
+                        autoSkip: false,
+                        // FILTER: Only show the very last label
+                        callback: function(val, index) {
+                            return index === labels.length - 1 ? this.getLabelForValue(val) : '';
+                        }
+                    } 
+                }, 
+                y: { 
+                    display: true, 
+                    beginAtZero: true, 
+                    suggestedMax: 100,
+                    ticks: { font: { size: 9 }, count: 3 } 
+                } 
+            } 
+        }
     };
 
-if (type === 'readiness') {
+    if (type === 'readiness') {
         chartConfig.type = 'bar';
         chartConfig.data = {
-            labels: ['Patient', 'Threshold'],
+            labels: ['Patient', 'Limit'],
             datasets: [{
                 data: [item.raw.mets, 4.0],
                 backgroundColor: [item.raw.isHighRisk ? '#ef4444' : '#10b981', '#94a3b8']
             }]
         };
-    } else if (type === 'recovery' || type === 'evidence') { // Added 'recovery'
-        chartConfig.data = {
-            labels: ['D1', 'D3', 'D7', 'D14', 'D21', 'D28', '6W'],
-            datasets: [{
-                data: item.raw.chartPoints || [],
-                borderColor: '#0ea5e9',
-                tension: 0.3,
-                fill: false,
-                pointRadius: 4
-            }]
-        };
+        // Hide X axis for the bar chart as it uses standard labels
+        chartConfig.options.scales.x.ticks.callback = (v, i) => chartConfig.data.labels[i];
+    } else {
+        chartConfig.data.datasets.push({
+            data: item.raw.chartPoints || [],
+            borderColor: 'var(--brand-navy)',
+            borderWidth: 2.5,
+            tension: 0.3,
+            fill: false,
+            pointRadius: 0 // Remove points for a cleaner "trajectory" look
+        });
     }
 
     new Chart(ctx, chartConfig);
