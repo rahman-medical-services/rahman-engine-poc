@@ -315,95 +315,79 @@ function renderChart(id, results, color, xLabels) {
 
 // PDF Generation attempt
 
-async function exportToPDF(filename, btnElement) {
+// --- STABLE PORTRAIT PDF ENGINE ---
+
+async function exportToPDF(filename, btn) {
     const element = document.getElementById('printable-area');
-    // Use the passed element or fallback to the event target safely
-    const btn = btnElement || (window.event ? window.event.target : null);
     const originalText = btn ? btn.innerText : 'Download PDF';
 
-    // 1. Immediate UI Feedback
+    // 1. Immediate UI Lockdown
     if (btn) {
         btn.innerText = "Processing...";
         btn.disabled = true;
-        btn.style.opacity = "0.5";
-        btn.style.cursor = "not-allowed";
     }
 
+    // 2. Prep the Chart (Capture it as an image FIRST)
+    const canvas = document.getElementById('mainChart');
+    let chartImg = null;
+    if (canvas) {
+        chartImg = new Image();
+        chartImg.src = canvas.toDataURL('image/png', 1.0);
+        chartImg.style.width = '100%';
+        chartImg.style.maxWidth = '600px';
+        chartImg.style.display = 'block';
+        chartImg.style.margin = '0 auto';
+    }
+
+    // 3. Save Original Styles
+    const originalStyle = element.getAttribute('style') || '';
+    const grid = element.querySelector('.grid');
+    const originalGridStyle = grid ? grid.getAttribute('style') || '' : '';
+
     try {
-        // 2. Capture Chart safely
-        const canvas = document.getElementById('mainChart');
-        let chartDataURL = null;
-        if (canvas) {
-            // Use a try-catch just for the canvas to prevent total failure
-            try { chartDataURL = canvas.toDataURL('image/png', 1.0); } 
-            catch (e) { console.warn("Chart capture failed, continuing without graph."); }
+        // 4. Transform UI to A4 Portrait
+        element.style.width = '794px';
+        element.style.minWidth = '794px';
+        element.style.padding = '40px';
+        element.style.background = 'white';
+        if (grid) {
+            grid.style.display = 'flex';
+            grid.style.flexDirection = 'column';
+        }
+        if (canvas && chartImg) {
+            canvas.style.display = 'none';
+            canvas.parentNode.insertBefore(chartImg, canvas);
         }
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        // Give the browser 200ms to physically redraw the new layout
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         const opt = {
-            margin: [10, 10, 10, 10],
+            margin: 10,
             filename: filename + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2, 
-                useCORS: true,
-                logging: false,
-                width: 794,
-                // Only force windowWidth on mobile to fix the 'zoomed' desktop bug
-                windowWidth: isMobile ? 794 : undefined, 
-                onclone: (clonedDoc) => {
-                    const clonedElement = clonedDoc.getElementById('printable-area');
-                    if (!clonedElement) return;
-
-                    // Clean the clone for A4
-                    Object.assign(clonedElement.style, {
-                        width: '794px',
-                        minWidth: '794px',
-                        maxWidth: '794px',
-                        padding: '30px',
-                        margin: '0 auto',
-                        backgroundColor: 'white'
-                    });
-
-                    // Force vertical stacking for Portrait
-                    const grid = clonedElement.querySelector('.grid');
-                    if (grid) {
-                        grid.style.display = 'flex';
-                        grid.style.flexDirection = 'column';
-                        grid.style.gap = '20px';
-                    }
-
-                    // Replace Canvas with Image in the clone
-                    const ghostCanvas = clonedElement.querySelector('canvas');
-                    if (ghostCanvas && chartDataURL) {
-                        const img = clonedDoc.createElement('img');
-                        img.src = chartDataURL;
-                        img.style.width = '100%';
-                        img.style.maxWidth = '600px';
-                        img.style.display = 'block';
-                        img.style.margin = '10px auto';
-                        ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
-                    }
-                }
-            },
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // 3. Execution
+        // 5. Generate the PDF
         await html2pdf().set(opt).from(element).save();
 
     } catch (err) {
-        console.error("PDF Export Critical Error:", err);
-        alert("Sorry, there was an error generating the PDF. The app has been reset.");
+        console.error("PDF Error:", err);
+        alert("Export failed. Restoring app...");
     } finally {
-        // 4. ALWAYS restore the UI, even if it fails
+        // 6. RESTORE EVERYTHING
+        element.setAttribute('style', originalStyle);
+        if (grid) grid.setAttribute('style', originalGridStyle);
+        if (canvas && chartImg) {
+            canvas.style.display = 'block';
+            chartImg.remove();
+            if (window.currentChart) window.currentChart.resize();
+        }
         if (btn) {
-            btn.innerText = originalText;
             btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
-            btn.style.display = "block";
+            btn.innerText = originalText;
         }
     }
 }
