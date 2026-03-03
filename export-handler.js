@@ -1,92 +1,65 @@
 /**
- * OutcomeLogic™ Export Handler v1.1 (Bulletproof Fix)
- * Isolated PDF Generation Module
+ * OutcomeLogic™ Export Handler - FIX 1.3
+ * Addressing: TypeError: undefined is not an object (evaluating 't.width.toString')
  */
 
 window.executePDFExport = async function(filename, btnElement) {
-    const originalElement = document.getElementById('printable-area');
-    
-    // Fallback: If btnElement is missing, try to find the active download button
+    const element = document.getElementById('printable-area');
     const btn = btnElement || document.querySelector('button[onclick*="triggerExport"]');
-    const originalText = btn ? btn.innerText : 'Download Evidence PDF';
+    
+    if (!element) return;
 
-    // 1. UI Lockdown - High Visibility
-    if (btn) {
-        btn.innerText = "Generating...";
-        btn.disabled = true;
-        btn.style.pointerEvents = 'none'; // Prevent double-clicks
-        btn.style.opacity = '0.5';
-    }
+    // 1. UI LOCKDOWN
+    const originalText = btn.innerText;
+    btn.innerText = "Preparing...";
+    btn.disabled = true;
 
     try {
-        // 2. Capture Chart Data
+        // 2. FORCE CHART STABILITY
+        // We grab the image data and immediately check if it exists
         const canvas = document.getElementById('mainChart');
         let chartDataURL = null;
         if (canvas) {
             chartDataURL = canvas.toDataURL('image/png', 1.0);
+            if (!chartDataURL || chartDataURL === "data:,") {
+                throw new Error("Canvas not ready for capture.");
+            }
         }
+
+        // 3. THE "T.WIDTH" FIX: Delay & Explicit Dimensions
+        // We force the browser to 'rest' for 250ms to ensure the DOM is stable
+        await new Promise(resolve => setTimeout(resolve, 250));
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-        // 3. PDF Configuration
         const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `${filename}.pdf`,
+            margin: 10,
+            filename: filename + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
+                // Explicitly defining these prevents the library from 
+                // guessing (which is where the 't.width' error lives)
                 width: 794,
-                windowWidth: isMobile ? 794 : undefined,
-                onclone: (clonedDoc) => {
-                    const clonedElement = clonedDoc.getElementById('printable-area');
-                    if (!clonedElement) return;
-
-                    // Apply Portrait Layout to Clone
-                    Object.assign(clonedElement.style, {
-                        width: '794px', padding: '40px', background: 'white'
-                    });
-
-                    const grid = clonedElement.querySelector('.grid');
-                    if (grid) {
-                        grid.style.display = 'flex';
-                        grid.style.flexDirection = 'column';
-                        grid.style.gap = '30px';
-                    }
-
-                    // Replace Canvas with Image
-                    const ghostCanvas = clonedElement.querySelector('canvas');
-                    if (ghostCanvas && chartDataURL) {
-                        const img = clonedDoc.createElement('img');
-                        img.src = chartDataURL;
-                        img.style.width = '100%';
-                        img.style.margin = '20px auto';
-                        ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
-                    }
-                    
-                    // Ensure the button itself is hidden in the PDF
-                    const innerBtn = clonedElement.querySelector('button');
-                    if (innerBtn) innerBtn.style.display = 'none';
-                }
+                windowWidth: isMobile ? 794 : 1024, 
+                scrollX: 0,
+                scrollY: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // 4. Execution
-        await html2pdf().set(opt).from(originalElement).save();
+        // 4. EXECUTION
+        await html2pdf().set(opt).from(element).save();
 
     } catch (err) {
-        console.error("PDF Export Critical Error:", err);
-        // Alert the user but don't stop the 'finally' block from running
-        alert("PDF Error: The document could not be generated, but your data is safe.");
+        console.error("PDF Engine Crash:", err);
+        alert("The PDF engine timed out. Your clinical data is safe. Please try again in a moment.");
     } finally {
-        // 5. THE RESET: Guaranteed UI Restoration
-        if (btn) {
-            btn.innerText = originalText;
-            btn.disabled = false;
-            btn.style.pointerEvents = 'auto';
-            btn.style.opacity = '1';
-        }
-        console.log("UI Thawed successfully.");
+        // 5. GUARANTEED UNFREEZE
+        // This MUST run regardless of the internal library error
+        btn.innerText = originalText;
+        btn.disabled = false;
+        console.log("UI Reset complete.");
     }
 };
