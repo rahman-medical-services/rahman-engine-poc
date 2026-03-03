@@ -274,18 +274,23 @@ function renderConsentForm() {
         return;
     }
 
-    let stackHTML = "";
+   let stackHTML = "";
     session.stack.forEach((item, index) => {
         stackHTML += `
             <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; page-break-inside: avoid;">
                 <h4 style="margin: 0 0 10px 0; color: var(--brand-navy); border-bottom: 2px solid var(--brand-cyan); display: inline-block;">${item.shortName}</h4>
-                <div style="display: grid; grid-template-columns: 1fr 250px; gap: 20px; align-items: center;">
-                    <div><p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p></div>
-                    <div style="height: 150px; width: 250px;"><canvas id="consent-chart-${index}"></canvas></div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+                    <div style="flex: 1 1 200px;">
+                        <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin: 0;">${item.synthesis}</p>
+                    </div>
+                    <div style="height: 150px; width: 100%; max-width: 250px; position: relative;">
+                        <canvas id="consent-chart-${index}"></canvas>
+                    </div>
                 </div>
+                
             </div>`;
     });
-
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
             <h2 style="color:var(--brand-navy); margin:0;">Integrated Evidence & Consent</h2>
