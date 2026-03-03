@@ -15,7 +15,7 @@
             --text-muted: #64748b;
         }
 
-        /* --- SCREEN STYLES (App Interface) --- */
+        /* --- BASE INTERFACE STYLES --- */
         body {
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             margin: 0; background: #e2e8f0; color: var(--text-main);
@@ -35,7 +35,7 @@
             background: rgba(0,0,0,0.5); z-index: 90;
         }
 
-        /* --- SIDEBAR (Restored High-End Aesthetics) --- */
+        /* --- SIDEBAR & NAVIGATION (Restored) --- */
         #sidebar {
             width: 300px; background: white; border-right: 1px solid #cbd5e1;
             display: flex; flex-direction: column; z-index: 100;
@@ -49,7 +49,6 @@
 
         #sidebar-nav { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; flex-grow: 1; }
         
-        /* Accordion / Category Styles */
         details.nav-category { margin-bottom: 2px; }
         summary.nav-label {
             font-size: 0.75rem; text-transform: uppercase; font-weight: 800;
@@ -58,10 +57,8 @@
             background: white; transition: background 0.2s;
         }
         summary.nav-label:hover { background: var(--bg-light); }
-        summary.nav-label::-webkit-details-marker { display: none; }
         summary.nav-label::after { content: '▼'; font-size: 0.6rem; transition: transform 0.2s; color: #94a3b8; }
         details[open] summary.nav-label::after { transform: rotate(180deg); }
-        
         .category-content { display: flex; flex-direction: column; gap: 5px; padding: 5px 20px 15px 20px; }
 
         .nav-btn {
@@ -77,48 +74,51 @@
             border-top: 1px solid #e2e8f0; background: var(--bg-light); flex-shrink: 0; text-align: center;
         }
 
-        /* --- MAIN CONTENT AREA --- */
+        /* --- COVARIATE & INPUT STYLING (The Corrected Block) --- */
+        .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
+        .ee-select { 
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; 
+            font-family: inherit; font-weight: 600; margin-bottom: 15px; box-sizing: border-box; 
+            background: white;
+        }
+        .ee-check-group { 
+            display: flex; align-items: center; gap: 10px; font-size: 0.9rem; 
+            font-weight: 500; margin-bottom: 10px; cursor: pointer; 
+        }
+
+        /* --- MAIN CONTENT & WIDGETS --- */
         #main-content { flex: 1; padding: 30px; overflow-y: auto; width: 100%; box-sizing: border-box; }
-        
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
         }
-        
         .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; flex-wrap: wrap; gap: 10px; }
         .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
         .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
-        
-        .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
         .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
         .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
 
         /* --- NATIVE PRINT ENGINE (A4 Logic) --- */
         @media print {
-            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button {
-                display: none !important;
-            }
+            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button { display: none !important; }
             body { background: white !important; display: block !important; overflow: visible !important; height: auto !important; }
-            #main-content { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
-            .widget-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+            #main-content { padding: 0 !important; margin: 0 !important; }
+            .widget-container { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; }
             .grid { display: block !important; }
-            .ee-sidebar { margin-bottom: 20px !important; background: transparent !important; border-bottom: 1px solid #eee !important; }
+            .ee-sidebar { background: transparent !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; }
+            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; }
             .chart-box { width: 100% !important; height: 450px !important; page-break-inside: avoid; }
-            canvas { max-width: 100% !important; height: auto !important; }
         }
 
-        /* --- MOBILE RESPONSIVENESS --- */
+        /* --- RESPONSIVENESS --- */
         @media (max-width: 900px) {
             body { flex-direction: column; }
             #mobile-header { display: flex; }
-            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); height: 100vh; }
+            #sidebar { position: fixed; transform: translateX(-100%); height: 100vh; }
             #sidebar.open { transform: translateX(0); }
-            .sidebar-header { display: none; }
-            #main-content { padding: 15px; }
-            .widget-container { padding: 20px; }
-            .grid { grid-template-columns: 1fr; gap: 20px; }
+            .grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -127,19 +127,15 @@
         <div style="font-weight: 800;">OutcomeLogic™</div>
         <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
     </div>
-    
     <div id="mobile-overlay" onclick="toggleSidebar()"></div>
-
     <div id="sidebar">
         <div class="sidebar-header">OutcomeLogic™</div>
-        <div id="sidebar-nav">
-            </div>
+        <div id="sidebar-nav"></div>
         <div class="sidebar-footer">
             <strong>v4.3 Clinical Build</strong><br>
             &copy; 2026 Rahman Medical Services Limited.
         </div>
     </div>
-
     <div id="main-content">
         <div id="content-mount">
             <div style="text-align: center; color: #64748b; margin-top: 20vh;">
@@ -148,7 +144,6 @@
             </div>
         </div>
     </div>
-
     <script src="trials.js"></script>
     <script src="export-handler.js"></script>
     <script src="engine.js"></script>
