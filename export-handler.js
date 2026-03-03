@@ -1,6 +1,6 @@
 /**
- * OutcomeLogic™ Export Handler - FIX 1.3
- * Addressing: TypeError: undefined is not an object (evaluating 't.width.toString')
+ * OutcomeLogic™ Export Handler - FIX 1.5
+ * Addressing: Bottom-half Chart Cut-off & Button Visibility
  */
 
 window.executePDFExport = async function(filename, btnElement) {
@@ -9,26 +9,24 @@ window.executePDFExport = async function(filename, btnElement) {
     
     if (!element) return;
 
-    // 1. UI LOCKDOWN
+    // 1. UI LOCKDOWN & HIDE BUTTON
     const originalText = btn.innerText;
     btn.innerText = "Preparing...";
     btn.disabled = true;
+    btn.style.visibility = 'hidden'; 
 
     try {
-        // 2. FORCE CHART STABILITY
-        // We grab the image data and immediately check if it exists
+        // 2. STABILIZE CHART
         const canvas = document.getElementById('mainChart');
-        let chartDataURL = null;
         if (canvas) {
-            chartDataURL = canvas.toDataURL('image/png', 1.0);
-            if (!chartDataURL || chartDataURL === "data:,") {
-                throw new Error("Canvas not ready for capture.");
-            }
+            // Ensure chart is fully painted before we measure height
+            canvas.toDataURL('image/png', 1.0);
         }
 
-        // 3. THE "T.WIDTH" FIX: Delay & Explicit Dimensions
-        // We force the browser to 'rest' for 250ms to ensure the DOM is stable
-        await new Promise(resolve => setTimeout(resolve, 250));
+        // 3. FORCE FULL HEIGHT CALCULATION
+        // We measure the actual internal height of the content
+        const fullHeight = element.scrollHeight;
+        const fullWidth = element.scrollWidth;
 
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -39,13 +37,12 @@ window.executePDFExport = async function(filename, btnElement) {
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
-                // These four lines are the fix for the desktop "zoom/clip"
-                width: 794,
-                windowWidth: 794,
-                scrollX: 0,
-                scrollY: 0,
-                x: 0,
-                y: 0
+                // Explicitly defining height stops the 'half-chart' clipping
+                height: fullHeight,
+                width: isMobile ? 794 : fullWidth,
+                windowWidth: isMobile ? 794 : fullWidth,
+                scrollY: -window.scrollY, // Corrects for page scroll offset
+                scrollX: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
@@ -54,13 +51,11 @@ window.executePDFExport = async function(filename, btnElement) {
         await html2pdf().set(opt).from(element).save();
 
     } catch (err) {
-        console.error("PDF Engine Crash:", err);
-        alert("The PDF engine timed out. Your clinical data is safe. Please try again in a moment.");
+        console.error("PDF Export Failure:", err);
     } finally {
-        // 5. GUARANTEED UNFREEZE
-        // This MUST run regardless of the internal library error
+        // 5. RESTORE UI
         btn.innerText = originalText;
         btn.disabled = false;
-        console.log("UI Reset complete.");
+        btn.style.visibility = 'visible'; 
     }
 };
