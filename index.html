@@ -24,28 +24,60 @@
             flex-direction: row;
         }
         
+        /* --- MOBILE HEADER FIXES --- */
         #mobile-header {
-            display: none; background: var(--brand-navy); color: white;
-            padding: 15px 20px; align-items: center; justify-content: space-between;
-            z-index: 50; flex-shrink: 0;
+            display: none; 
+            background: var(--brand-navy); 
+            color: white;
+            padding: 15px 20px; 
+            align-items: center; 
+            justify-content: space-between;
+            position: relative;
+            z-index: 2000; /* Stays above everything */
+            flex-shrink: 0;
         }
-        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        .menu-btn { 
+            background: none; 
+            border: none; 
+            color: white; 
+            font-size: 2rem; /* Larger touch target */
+            padding: 5px 10px; 
+            cursor: pointer; 
+            position: relative;
+            z-index: 2001;
+        }
         
         #mobile-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5); z-index: 90;
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); 
+            z-index: 900; /* Sits behind the sidebar */
         }
 
         /* --- SIDEBAR & NAVIGATION --- */
         #sidebar {
-            width: 300px; background: white; border-right: 1px solid #cbd5e1;
-            display: flex; flex-direction: column; z-index: 100;
+            width: 300px; 
+            background: white; 
+            border-right: 1px solid #cbd5e1;
+            display: flex; 
+            flex-direction: column; 
+            z-index: 1000; /* Sits between overlay and header */
             transition: transform 0.3s ease;
         }
+        
         .sidebar-header {
             padding: 20px; background: var(--brand-navy); color: white;
             font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px; flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: center;
         }
+        
+        .close-btn {
+            display: none; background: none; border: none; color: white;
+            font-size: 1.5rem; cursor: pointer; padding: 0 5px;
+        }
+
         #sidebar-nav { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; flex-grow: 1; }
         
         details.nav-category { margin-bottom: 2px; }
@@ -103,7 +135,7 @@
 
         /* DIGITAL SIGNATURE SAFETY */
         #sig-canvas {
-            touch-action: none;
+            touch-action: none; /* Prevents page scroll while signing */
             width: 100%;
             height: 100%;
             cursor: crosshair;
@@ -122,6 +154,7 @@
         @media (max-width: 900px) {
             body { flex-direction: column; }
             #mobile-header { display: flex; }
+            .close-btn { display: block; } /* Show X button only on mobile */
             #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); height: 100vh; }
             #sidebar.open { transform: translateX(0); }
             #main-content { padding: 15px; }
@@ -138,7 +171,10 @@
     <div id="mobile-overlay" onclick="toggleSidebar()"></div>
 
     <div id="sidebar">
-        <div class="sidebar-header">OutcomeLogic™</div>
+        <div class="sidebar-header">
+            <span>OutcomeLogic™</span>
+            <button class="close-btn" onclick="toggleSidebar()">&times;</button>
+        </div>
         
         <div id="sidebar-nav">
             </div>
@@ -168,8 +204,17 @@
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
             const ov = document.getElementById('mobile-overlay');
-            sb.classList.toggle('open');
-            ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+            
+            // Robust toggle logic to ensure states don't get misaligned
+            if (sb.classList.contains('open')) {
+                sb.classList.remove('open');
+                sb.style.transform = 'translateX(-100%)';
+                ov.style.display = 'none';
+            } else {
+                sb.classList.add('open');
+                sb.style.transform = 'translateX(0)';
+                ov.style.display = 'block';
+            }
         }
     </script>
 </body>
