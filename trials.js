@@ -296,7 +296,7 @@ readiness: {
             <div id="web-narrative-display" style="display:none; margin-top:30px;">
                 <div id="status-card" style="background:var(--brand-navy); color:white; padding:25px; border-radius:12px; margin-bottom:20px; border-left:8px solid #cbd5e1;">
                     <h3 style="margin-top:0; color:#6facd5;">Statistical Risk Profile</h3>
-                    <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
+                    <p id="out-advice" style="font-size:1.1rem; line-height:1.5; color:white;"></p>
                 </div>
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
                     <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
@@ -309,23 +309,33 @@ readiness: {
         calculate: function() {
             let dasi = 0; 
             document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
+            
+            // METs Formula: (DASI score * 0.43 + 9.6) / 3.5
             let mets = ((0.43 * dasi) + 9.6) / 3.5;
+            
             let sb = 0; 
             document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-            // 1. Logic & Red-Zone Checks
-            const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
-            const statusColor = isHighRisk ? "#ef4444" : "#10b981";
-            const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
-
-            // 2. Modifier Synthesis
+            // 1. Identify Standalone Clinical Modifiers (Including Explicit BMI)
             let modifiers = [];
             if (document.getElementById('p-smoke')?.checked) modifiers.push("Current Smoker/Vaper");
             if (document.getElementById('p-diab')?.checked) modifiers.push("Diabetes (HbA1c > 64)");
             if (document.getElementById('p-thin')?.checked) modifiers.push("On Blood Thinners");
-            let modString = modifiers.length > 0 ? " Identified Modifiers: " + modifiers.join(", ") + "." : " No additional clinical modifiers identified.";
+            
+            // Standalone BMI reporting even though it's in STOP-BANG
+            const bmiHigh = document.getElementById('in-bmi')?.checked;
+            if (bmiHigh) modifiers.push("Elevated BMI (> 35)");
+            
+            let modString = modifiers.length > 0 
+                ? " Identified Clinical Factors: " + modifiers.join(", ") + "." 
+                : " No additional clinical modifiers identified.";
 
-            // 3. UI Updates
+            // 2. Determine Red-Zone Status
+            const isHighRisk = (mets < 4 || sb >= 5 || bmiHigh);
+            const statusColor = isHighRisk ? "#ef4444" : "#10b981";
+            const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
+
+            // 3. Update UI Elements
             document.getElementById('initial-message').style.display = 'none';
             document.getElementById('web-narrative-display').style.display = 'block';
             
@@ -346,7 +356,7 @@ readiness: {
 
             document.getElementById('out-pillars').innerHTML = "<strong>Clinical Context:</strong><br>" + modString;
 
-            // 4. Multi-Model Stack Bridge
+            // 4. Return Data to Clinical Stack for Consent Bridge
             return { 
                 synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.${modString}`,
                 rawData: { 
@@ -392,32 +402,38 @@ readiness: {
             </div>
         `,
         footer_note: "Visualization of ERAS protocol databases. Variables mapped against standard recovery algorithms.",
-        calculate: function() {
+calculate: function() {
             const surg = document.getElementById('rec-surgery')?.value || 'lap_minor';
             const fit = parseFloat(document.getElementById('rec-fit')?.value) || 1.0;
             const compMod = parseFloat(document.getElementById('rec-comp')?.value) || 1.0;
             const selected = this.baselines[surg];
             
             const delay = (fit < 1.0 ? 1.3 : 1.0) * (compMod < 1.0 ? 1.8 : 1.0); 
+            const driveDays = Math.round((surg === 'lap_minor' ? 7 : 14) * delay);
+            const liftWks = Math.round((surg === 'lap_minor' ? 4 : 6) * delay);
             
             if(document.getElementById('rec-driving')) {
-                document.getElementById('rec-driving').innerText = Math.round((surg === 'lap_minor' ? 7 : 14) * delay) + " Days";
-                document.getElementById('rec-lifting').innerText = Math.round((surg === 'lap_minor' ? 4 : 6) * delay) + " Wks";
-                document.getElementById('rec-sex').innerText = Math.round((surg === 'lap_minor' ? 7 : 14) * delay) + " Days";
-                document.getElementById('rec-alcohol').innerText = surg === 'lap_major' ? "Strict Avoid" : "Off Opioids";
+                document.getElementById('rec-driving').innerText = driveDays + " Days";
+                document.getElementById('rec-lifting').innerText = liftWks + " Wks";
             }
 
- return {
-    primaryData: this.baselines[surg].map(s => Math.min(s * fit * compMod, 100)),
-    secondaryData: this.baselines[surg],
-    synthesisText: `RECOVERY: Est. return to driving ${driveDays} days, lifting ${liftWks} weeks.`,
-    rawData: { 
-        mainMetric: driveDays + " Days", 
-        label: "Est. Driving Return", 
-        type: 'recovery',
-        chartPoints: this.baselines[surg].map(s => Math.min(s * fit * compMod, 100)) // Added for Consent Chart
-    }
-};
+            // Generate trajectory points for the chart
+            const adjustedPoints = selected.map(s => Math.min(s * fit * compMod, 100));
+
+            return {
+                primaryData: adjustedPoints, // Restores chart to web view
+                secondaryData: selected,
+                primaryLabel: "Adjusted Trajectory",
+                secondaryLabel: "Standard Path",
+                labelY: "Function (%)",
+                synthesisText: `RECOVERY: Expected return to driving in ${driveDays} days and heavy lifting in ${liftWks} weeks.`,
+                rawData: { 
+                    mainMetric: driveDays + " Days", 
+                    label: "Est. Driving Return", 
+                    type: 'recovery',
+                    chartPoints: adjustedPoints // Bridges to Consent Module
+                }
+            };
         }
     },
 
