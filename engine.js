@@ -313,7 +313,6 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
-// PDF Generation attempt
 async function exportToPDF(filename, btn) {
     const originalElement = document.getElementById('printable-area');
     const originalText = btn ? btn.innerText : 'Download PDF';
@@ -323,74 +322,74 @@ async function exportToPDF(filename, btn) {
         btn.disabled = true;
     }
 
+    // 1. Capture Chart as Image BEFORE anything else
+    const canvas = document.getElementById('mainChart');
+    let chartDataURL = null;
+    if (canvas) {
+        chartDataURL = canvas.toDataURL('image/png', 1.0);
+    }
+
+    // 2. Create the "Safe-Zone" Container
+    // Positioned at 0,0 but behind the main UI to ensure it renders correctly
+    const container = document.createElement('div');
+    Object.assign(container.style, {
+        position: 'fixed',
+        left: '0',
+        top: '0',
+        width: '794px',
+        backgroundColor: 'white',
+        zIndex: '-1000', 
+        visibility: 'visible'
+    });
+
+    const clone = originalElement.cloneNode(true);
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    // 3. Format the Clone for A4 Portrait
+    const grid = clone.querySelector('.grid');
+    if (grid) {
+        grid.style.display = 'block'; // Force vertical stack
+    }
+
+    // Replace canvas in clone with static image
+    const ghostCanvas = clone.querySelector('canvas');
+    if (ghostCanvas && chartDataURL) {
+        const img = new Image();
+        img.src = chartDataURL;
+        img.style.width = '100%';
+        img.style.maxWidth = '600px';
+        img.style.display = 'block';
+        img.style.margin = '20px auto';
+        ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
+    }
+
+    // 4. Mobile vs Desktop Logic
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    const opt = {
+        margin: 10,
+        filename: filename + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            width: 794,
+            // Only use windowWidth on mobile to prevent the desktop cropping/zooming
+            windowWidth: isMobile ? 794 : undefined 
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
     try {
-        // 1. Capture Chart as Image BEFORE cloning
-        const canvas = document.getElementById('mainChart');
-        let chartDataURL = null;
-        if (canvas) {
-            chartDataURL = canvas.toDataURL('image/png', 1.0);
-        }
-
-        // 2. Create an isolated container for the PDF camera
-        const container = document.createElement('div');
-        container.id = 'pdf-render-container';
-        
-        // Hide the container from the user but keep it "visible" for the camera
-        Object.assign(container.style, {
-            position: 'absolute',
-            left: '-9999px',
-            top: '0',
-            width: '794px', // Standard A4 width
-            backgroundColor: 'white'
-        });
-
-        // 3. Clone the content into this isolated container
-        const clone = originalElement.cloneNode(true);
-        container.appendChild(clone);
-        document.body.appendChild(container);
-
-        // 4. Format the Clone (Force Portrait Stack)
-        const grid = clone.querySelector('.grid');
-        if (grid) {
-            grid.style.display = 'block'; // Complete override of any CSS grid
-        }
-
-        // 5. Replace Canvas in the clone with the static image
-        const ghostCanvas = clone.querySelector('canvas');
-        if (ghostCanvas && chartDataURL) {
-            const img = new Image();
-            img.src = chartDataURL;
-            img.style.width = '100%';
-            img.style.maxWidth = '600px';
-            img.style.display = 'block';
-            img.style.margin = '20px auto';
-            ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
-        }
-
-        // 6. PDF Configuration
-        const opt = {
-            margin: 10,
-            filename: filename + '.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2, 
-                useCORS: true,
-                width: 794,
-                windowWidth: 794 // Strictly force the camera's eye to A4 width
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // 7. Snap the PDF from the isolated container
+        // Wait 100ms for the browser to "paint" the hidden container
+        await new Promise(r => setTimeout(r, 100));
         await html2pdf().set(opt).from(container).save();
-
-        // 8. Cleanup
-        document.body.removeChild(container);
-
     } catch (err) {
-        console.error("PDF Error:", err);
-        alert("Export failed.");
+        console.error("PDF Export Error:", err);
     } finally {
+        // 5. Cleanup
+        document.body.removeChild(container);
         if (btn) {
             btn.disabled = false;
             btn.innerText = originalText;
