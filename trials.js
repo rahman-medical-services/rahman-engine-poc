@@ -166,79 +166,100 @@ const TRIAL_DATA = {
     // ---------------------------------------------------------
     // 3. PERI-OPERATIVE PLANNING
     // ---------------------------------------------------------
-    readiness: {
-        category: "Peri-operative Planning", type: "passport", shortName: "Readiness Passport",
-        title: "Surgical Readiness Assessment", subtitle: "Objective Risk Metric Synthesis",
-        source: "Standardized Scoring (DASI, STOP-BANG)", color: "#6facd5",
-        controlsHTML: `
-            <div id="readiness-inputs">
-                <div class="rh-group">
-                    <label class="nav-label">1. Functional Capacity (DASI)</label>
-                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="5.50"> Climb stairs / Walk up hill</label>
-                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Run short distance</label>
-                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Heavy housework (lifting)</label>
-                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming)</label>
-                </div>
-                <div class="rh-group" style="margin-top:20px;">
-                    <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (P) High blood pressure?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> (B) BMI > 35?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (A) Age > 50?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (N) Neck > 16in/40cm?</label>
-                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (G) Gender: Male?</label>
-                </div>
-                <div class="rh-group" style="margin-top:20px;">
-                    <label class="nav-label">3. Clinical Modifiers</label>
-                    <label class="ee-check-group"><input type="checkbox" id="p-smoke"> Current Smoker / Vaper</label>
-                    <label class="ee-check-group"><input type="checkbox" id="p-diab"> Diabetes (HbA1c > 64)</label>
-                    <label class="ee-check-group"><input type="checkbox" id="p-thin"> On Blood Thinners</label>
-                </div>
-                <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="runCalculation('readiness')">Synthesize Metrics</button>
+   readiness: {
+    category: "Peri-operative Planning", 
+    type: "passport", 
+    shortName: "Readiness Passport",
+    title: "Surgical Readiness Assessment", 
+    subtitle: "Objective Risk Metric Synthesis",
+    source: "Standardized Scoring (DASI, STOP-BANG)", 
+    color: "#6facd5",
+    controlsHTML: `
+        <div id="readiness-inputs">
+            <div class="rh-group">
+                <label class="nav-label">1. Functional Capacity (DASI)</label>
+                <label class="ee-check-group"><input type="checkbox" class="d-val" value="5.50"> Climb stairs / Walk up hill</label>
+                <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Run short distance</label>
+                <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Heavy housework (lifting)</label>
+                <label class="ee-check-group"><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming)</label>
             </div>
-        `,
-        narrativeTemplate: `
-            <div id="web-narrative-display" style="display:none; margin-top:30px;">
-                <div style="background:var(--brand-navy); color:white; padding:25px; border-radius:12px; margin-bottom:20px;">
-                    <h3 style="margin-top:0; color:#6facd5;">Statistical Risk Profile</h3>
-                    <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
-                </div>
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
-                    <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
-                </div>
-                <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
+            <div class="rh-group" style="margin-top:20px;">
+                <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (P) High blood pressure?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> (B) BMI > 35?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (A) Age > 50?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (N) Neck > 16in/40cm?</label>
+                <label class="ee-check-group"><input type="checkbox" class="s-val"> (G) Gender: Male?</label>
             </div>
-        `,
-        footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
-        calculate: function() {
-            let dasi = 0; document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
-            let mets = ((0.43 * dasi) + 9.6) / 3.5;
-            let sb = 0; document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
+            <div class="rh-group" style="margin-top:20px;">
+                <label class="nav-label">3. Clinical Modifiers</label>
+                <label class="ee-check-group"><input type="checkbox" id="p-smoke"> Current Smoker / Vaper</label>
+                <label class="ee-check-group"><input type="checkbox" id="p-diab"> Diabetes (HbA1c > 64)</label>
+                <label class="ee-check-group"><input type="checkbox" id="p-thin"> On Blood Thinners</label>
+            </div>
+            
+            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="runCalculation('readiness')">
+                Synthesize Metrics
+            </button>
+            
+            <button class="nav-btn" style="margin-top:10px; width:100%; text-align:center; border: 1px solid var(--brand-navy); color: var(--brand-navy); background: white;" onclick="triggerExport('Surgical-Readiness', this)">
+                Download Evidence PDF
+            </button>
+        </div>
+    `,
+    narrativeTemplate: `
+        <div id="web-narrative-display" style="display:none; margin-top:30px;">
+            <div style="background:var(--brand-navy); color:white; padding:25px; border-radius:12px; margin-bottom:20px;">
+                <h3 style="margin-top:0; color:#6facd5;">Statistical Risk Profile</h3>
+                <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
+            </div>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
+                <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
+            </div>
+            <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
+        </div>
+    `,
+    footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
+    calculate: function() {
+        let dasi = 0; 
+        document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
+        
+        // METs Formula: (DASI score * 0.43 + 9.6) / 3.5
+        let mets = ((0.43 * dasi) + 9.6) / 3.5;
+        let sb = 0; 
+        document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-            let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
-            if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
-            if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
-            if (document.getElementById('p-thin')?.checked) pHTML += "• Active Anticoagulant Therapy.<br>";
-            if (document.getElementById('in-bmi')?.checked) pHTML += "• BMI > 35 (Associated with increased procedural complexity).<br>";
-            if (pHTML === "<strong>Identified Clinical Modifiers:</strong><br>") pHTML = "No additional clinical modifiers identified from selection.";
-
-            document.getElementById('initial-message').style.display = 'none';
-            document.getElementById('web-narrative-display').style.display = 'block';
-            document.getElementById('out-mets').innerText = mets.toFixed(1);
-            document.getElementById('out-sb').innerText = sb + "/8";
-            document.getElementById('out-pillars').innerHTML = pHTML;
-
-            let advice = (mets >= 4 && sb < 3 && !document.getElementById('in-bmi')?.checked) 
-                ? "Calculated profile (METs ≥ 4, STOP-BANG < 3) aligns statistically with standard baseline risk thresholds for elective procedures."
-                : "Calculated profile indicates variables (e.g., METs < 4, elevated STOP-BANG, or BMI > 35) statistically associated with complex perioperative pathways.";
-            document.getElementById('out-advice').innerText = advice;
-
-            return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. ${advice}` }; 
+        let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
+        if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
+        if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
+        if (document.getElementById('p-thin')?.checked) pHTML += "• Active Anticoagulant Therapy.<br>";
+        if (document.getElementById('in-bmi')?.checked) pHTML += "• BMI > 35 (Associated with increased procedural complexity).<br>";
+        
+        if (pHTML === "<strong>Identified Clinical Modifiers:</strong><br>") {
+            pHTML = "No additional clinical modifiers identified from selection.";
         }
-    },
+
+        // Update the UI
+        document.getElementById('initial-message').style.display = 'none';
+        document.getElementById('web-narrative-display').style.display = 'block';
+        document.getElementById('out-mets').innerText = mets.toFixed(1);
+        document.getElementById('out-sb').innerText = sb + "/8";
+        document.getElementById('out-pillars').innerHTML = pHTML;
+
+        let advice = (mets >= 4 && sb < 3 && !document.getElementById('in-bmi')?.checked) 
+            ? "Calculated profile (METs ≥ 4, STOP-BANG < 3) aligns statistically with standard baseline risk thresholds for elective procedures."
+            : "Calculated profile indicates variables (e.g., METs < 4, elevated STOP-BANG, or BMI > 35) statistically associated with complex perioperative pathways.";
+        
+        document.getElementById('out-advice').innerText = advice;
+
+        // Return synthesis for PatientSession / Qualtrics
+        return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. ${advice}` }; 
+    }
+},
 
     recovery: {
         category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
