@@ -23,54 +23,40 @@ relapstone: {
             <select id="calc-age" class="ee-select" onchange="runCalculation('relapstone')">
                 <option value="1.0">54 or younger</option><option value="0.57">Over 54</option>
             </select>
-            
             <label class="ee-check-group"><input type="checkbox" id="calc-mult" onchange="runCalculation('relapstone')"> Multiple Stones?</label>
-            
             <label class="ee-check-group" style="margin-top:10px; color:var(--brand-navy); font-weight:700;">
                 <input type="checkbox" id="toggle-admission" onchange="document.getElementById('admission-details').style.display = this.checked ? 'block' : 'none'; runCalculation('relapstone');"> 
                 Previous Hospital Admission?
             </label>
-
             <div id="admission-details" style="display:none; margin-left:20px; padding:10px; border-left:2px solid #cbd5e1; margin-bottom:15px;">
-                <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L (Blood Test)</label>
-                <label class="ee-check-group"><input type="checkbox" id="calc-ercp" onchange="runCalculation('relapstone')"> Previous ERCP Procedure?</label>
+                <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L</label>
+                <label class="ee-check-group"><input type="checkbox" id="calc-ercp" onchange="runCalculation('relapstone')"> Previous ERCP?</label>
             </div>
-            
-            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Gallstone-Triage', this)">
-                Download Evidence PDF
-            </button>
+            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Gallstone-Triage', this)">Download Evidence PDF</button>
         `,
-        footer_note: "Statistical probability of remaining symptom-free. Not a clinical recommendation.",
         calculate: function() {
             const ageMod = parseFloat(document.getElementById('calc-age')?.value) || 1;
             const multStones = document.getElementById('calc-mult')?.checked ? 1.19 : 1.0;
-            
-            // Only apply these if the admission toggle is active
             const hasAdmission = document.getElementById('toggle-admission')?.checked;
             const altHigh = (hasAdmission && document.getElementById('calc-alt')?.checked) ? 1.22 : 1.0;
             const ercpMod = (hasAdmission && document.getElementById('calc-ercp')?.checked) ? 1.39 : 1.0;
             
             const hrTotal = ageMod * multStones * altHigh * ercpMod;
-            const prob12m = Math.pow(this.baseline[12], hrTotal) * 100;
+            const fullTrajectory = this.baseline.map(s => Math.pow(s, hrTotal) * 100);
+            const prob12m = fullTrajectory[12];
 
-            const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones > 1 ? 'Multiple stones' : 'Single stone'}${ercpMod > 1 ? ', Post-ERCP' : ''}.`;
-
-            // Updated Return Pattern: Using rawData to prevent cross-module leaks
-            // --- Inside trials.js > relapstone > calculate ---
-return {
-    primaryData: this.baseline.map(s => Math.pow(s, hrTotal) * 100),
-    secondaryData: this.baseline.map(s => s * 100),
-    primaryLabel: "Selected Patient Profile", 
-    secondaryLabel: "Standard Cohort Average",
-    labelY: "Probability of Pain-Free (%)",
-    synthesisText: synth,
-    rawData: { 
-        mainMetric: prob12m.toFixed(0) + "%", 
-        label: "12m Symptom-Free Prob.", 
-        type: 'evidence',
-        chartPoints: this.baseline.map(s => Math.pow(s, hrTotal) * 100) // Added for Consent Chart
-    }
-};
+            return {
+                primaryData: fullTrajectory,
+                secondaryData: this.baseline.map(s => s * 100),
+                synthesisText: `RELAPSTONE: 12-month pain-free probability is ${prob12m.toFixed(0)}%. Profile modifiers: Age ${ageMod < 1 ? '>54' : '<54'}, Stones ${multStones > 1 ? 'Multi' : 'Single'}${ercpMod > 1 ? ', Post-ERCP' : ''}.`,
+                rawData: { 
+                    mainMetric: prob12m.toFixed(0) + "%", 
+                    label: "12m Symptom-Free Prob.", 
+                    type: 'evidence',
+                    chartPoints: fullTrajectory,
+                    chartLabels: ['0', '3m', '6m', '9m', '12m'] // Every quarter markers
+                }
+            };
         }
     },
 
@@ -368,70 +354,63 @@ readiness: {
             }; 
         }
     },
-    recovery: {
+  recovery: {
         category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
         title: "Predictive Recovery Passport", subtitle: "Procedure-Specific Trajectories",
         source: "ERAS Society Outcomes Database", color: "#10b981", 
         xAxisLabels: ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 28', '6 Weeks'],
         baselines: {
-            lap_minor: [5, 20, 60, 85, 95, 100, 100], lap_major: [0, 10, 30, 60, 80, 90, 95], open_major: [0, 0, 10, 25, 45, 60, 80]     
+            lap_minor: [5, 20, 60, 85, 95, 100, 100], 
+            lap_major: [0, 10, 30, 60, 80, 90, 95], 
+            open_major: [0, 0, 10, 25, 45, 60, 80]     
         },
         controlsHTML: `
             <label class="nav-label">Procedure Conducted</label>
             <select id="rec-surgery" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="lap_minor">Lap Cholecystectomy / Hernia</option>
+                <option value="lap_minor">Lap Chole / Hernia</option>
                 <option value="lap_major">Lap Fundoplication / Bariatric</option>
-                <option value="open_major">Major Open (Esophagectomy/Bowel)</option>
+                <option value="open_major">Major Open Procedure</option>
             </select>
-            <label class="nav-label">Usual Physical Activity Before Surgery</label>
+            <label class="nav-label">Physical Activity Before Surgery</label>
             <select id="rec-fit" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.1">Highly Active / Sport</option>
-                <option value="1.0" selected>Normal Daily Activity</option>
-                <option value="0.8">Limited Mobility / Frail</option>
+                <option value="1.1">Highly Active</option><option value="1.0" selected>Normal Activity</option><option value="0.8">Frail / Limited</option>
             </select>
             <label class="nav-label" style="color:#c0392b;">Post-Op Course</label>
             <select id="rec-comp" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.0">Uncomplicated Recovery</option>
-                <option value="0.65">Minor Complication (e.g., Infection, Ileus)</option>
+                <option value="1.0">Uncomplicated</option><option value="0.65">Minor Complication</option>
             </select>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
                 <div class="evidence-card"><div class="stat-label">Driving</div><div id="rec-driving" class="stat-main" style="font-size:1.2rem;">--</div></div>
                 <div class="evidence-card"><div class="stat-label">Lifting</div><div id="rec-lifting" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Intimacy</div><div id="rec-sex" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Alcohol</div><div id="rec-alcohol" class="stat-main" style="font-size:1.2rem;">--</div></div>
             </div>
         `,
-        footer_note: "Visualization of ERAS protocol databases. Variables mapped against standard recovery algorithms.",
-calculate: function() {
+        calculate: function() {
             const surg = document.getElementById('rec-surgery')?.value || 'lap_minor';
             const fit = parseFloat(document.getElementById('rec-fit')?.value) || 1.0;
-            const compMod = parseFloat(document.getElementById('rec-comp')?.value) || 1.0;
+            const comp = parseFloat(document.getElementById('rec-comp')?.value) || 1.0;
             const selected = this.baselines[surg];
             
-            const delay = (fit < 1.0 ? 1.3 : 1.0) * (compMod < 1.0 ? 1.8 : 1.0); 
-            const driveDays = Math.round((surg === 'lap_minor' ? 7 : 14) * delay);
-            const liftWks = Math.round((surg === 'lap_minor' ? 4 : 6) * delay);
+            const delay = (fit < 1.0 ? 1.3 : 1.0) * (comp < 1.0 ? 1.8 : 1.0); 
+            const d = Math.round((surg === 'lap_minor' ? 7 : 14) * delay);
+            const l = Math.round((surg === 'lap_minor' ? 4 : 6) * delay);
             
             if(document.getElementById('rec-driving')) {
-                document.getElementById('rec-driving').innerText = driveDays + " Days";
-                document.getElementById('rec-lifting').innerText = liftWks + " Wks";
+                document.getElementById('rec-driving').innerText = d + " Days";
+                document.getElementById('rec-lifting').innerText = l + " Wks";
             }
 
-            // Generate trajectory points for the chart
-            const adjustedPoints = selected.map(s => Math.min(s * fit * compMod, 100));
+            const adjustedPoints = selected.map(s => Math.min(s * fit * comp, 100));
 
             return {
-                primaryData: adjustedPoints, // Restores chart to web view
+                primaryData: adjustedPoints,
                 secondaryData: selected,
-                primaryLabel: "Adjusted Trajectory",
-                secondaryLabel: "Standard Path",
+                primaryLabel: "Selected Profile", secondaryLabel: "Standard Path",
                 labelY: "Function (%)",
-                synthesisText: `RECOVERY: Expected return to driving in ${driveDays} days and heavy lifting in ${liftWks} weeks.`,
+                synthesisText: `RECOVERY: Estimated return to driving in ${d} days and lifting in ${l} weeks.`,
                 rawData: { 
-                    mainMetric: driveDays + " Days", 
-                    label: "Est. Driving Return", 
-                    type: 'recovery',
-                    chartPoints: adjustedPoints // Bridges to Consent Module
+                    mainMetric: d + " Days", label: "Driving Return", type: 'recovery',
+                    chartPoints: adjustedPoints,
+                    chartLabels: ['D1', 'D7', 'D14', 'D21', '6W'] // Milestone markers
                 }
             };
         }
