@@ -320,27 +320,32 @@ async function exportToPDF(filename) {
     const btn = window.event ? window.event.target : null;
     const originalText = btn ? btn.innerText : 'Download PDF';
 
-    // 1. Preparation: Hide button and capture chart FIRST
+    // 1. Hide the button so it doesn't appear in the clone
     if (btn) {
-        btn.style.display = 'none'; // Completely remove from layout before cloning
+        btn.style.display = 'none';
     }
     
+    // 2. Capture the high-res chart data
     const canvas = document.getElementById('mainChart');
     const chartDataURL = canvas ? canvas.toDataURL('image/png', 1.0) : null;
 
+    // 3. Detect if the user is on a mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     const opt = {
-        margin: [10, 10, 10, 10], // T, L, B, R
+        margin: [10, 10, 10, 10],
         filename: filename + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
             scale: 2, 
             useCORS: true,
+            // Universal Fix: Only force windowWidth on mobile to prevent desktop zooming
             width: 794,
-            windowWidth: 794,
+            windowWidth: isMobile ? 794 : undefined, 
             onclone: (clonedDoc) => {
                 const clonedElement = clonedDoc.getElementById('printable-area');
                 
-                // Final A4 Tweak: Lock width and prevent any overflow
+                // Style the clone for A4 Portrait
                 Object.assign(clonedElement.style, {
                     width: '794px',
                     minWidth: '794px',
@@ -357,6 +362,7 @@ async function exportToPDF(filename) {
                     grid.style.flexDirection = 'column';
                 }
 
+                // Replace canvas with static high-res image
                 const ghostCanvas = clonedElement.querySelector('canvas');
                 if (ghostCanvas && chartDataURL) {
                     const img = clonedDoc.createElement('img');
@@ -378,7 +384,7 @@ async function exportToPDF(filename) {
         console.error("PDF Export Error:", err);
     } finally {
         if (btn) {
-            btn.style.display = 'block'; // Restore button
+            btn.style.display = 'block';
             btn.innerText = originalText;
             btn.disabled = false;
         }
