@@ -297,10 +297,14 @@ readiness: {
         } // This brace ends the function
     }, // This brace ends the readiness object
     
-  recovery: {
-        category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
-        title: "Predictive Recovery Passport", subtitle: "Procedure-Specific Trajectories",
-        source: "ERAS Society Outcomes Database", color: "#10b981", 
+ recovery: {
+        category: "Peri-operative Planning", 
+        type: "calculated", 
+        shortName: "Recovery Passport",
+        title: "Predictive Recovery Passport", 
+        subtitle: "Procedure-Specific Trajectories",
+        source: "ERAS Society Outcomes Database", 
+        color: "#10b981", 
         xAxisLabels: ['Day 1', 'Day 3', 'Day 7', 'Day 14', 'Day 21', 'Day 28', '6 Weeks'],
         baselines: {
             lap_minor: [5, 20, 60, 85, 95, 100, 100], 
@@ -316,49 +320,83 @@ readiness: {
             </select>
             <label class="nav-label">Physical Activity Before Surgery</label>
             <select id="rec-fit" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.1">Highly Active</option><option value="1.0" selected>Normal Activity</option><option value="0.8">Frail / Limited</option>
+                <option value="1.1">Highly Active</option>
+                <option value="1.0" selected>Normal Activity</option>
+                <option value="0.8">Frail / Limited</option>
             </select>
             <label class="nav-label" style="color:#c0392b;">Post-Op Course</label>
             <select id="rec-comp" class="ee-select" onchange="runCalculation('recovery')">
-                <option value="1.0">Uncomplicated</option><option value="0.65">Minor Complication</option>
+                <option value="1.0">Uncomplicated</option>
+                <option value="0.65">Minor Complication</option>
             </select>
+            
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-                <div class="evidence-card"><div class="stat-label">Driving</div><div id="rec-driving" class="stat-main" style="font-size:1.2rem;">--</div></div>
-                <div class="evidence-card"><div class="stat-label">Lifting</div><div id="rec-lifting" class="stat-main" style="font-size:1.2rem;">--</div></div>
+                <div class="evidence-card">
+                    <div class="stat-label">Driving</div>
+                    <div id="rec-driving" class="stat-main" style="font-size:1.2rem;">--</div>
+                </div>
+                <div class="evidence-card">
+                    <div class="stat-label">Lifting</div>
+                    <div id="rec-lifting" class="stat-main" style="font-size:1.2rem;">--</div>
+                </div>
+                <div class="evidence-card">
+                    <div class="stat-label">Intimacy</div>
+                    <div id="rec-sex" class="stat-main" style="font-size:1.2rem;">--</div>
+                </div>
+                <div class="evidence-card">
+                    <div class="stat-label">Alcohol</div>
+                    <div id="rec-alcohol" class="stat-main" style="font-size:1.2rem;">--</div>
+                </div>
             </div>
+            
+            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Recovery-Passport', this)">
+                Download Evidence PDF
+            </button>
         `,
         calculate: function() {
             const surg = document.getElementById('rec-surgery')?.value || 'lap_minor';
             const fit = parseFloat(document.getElementById('rec-fit')?.value) || 1.0;
             const comp = parseFloat(document.getElementById('rec-comp')?.value) || 1.0;
-            const selected = this.baselines[surg];
+            const selectedBaseline = this.baselines[surg];
             
-            const delay = (fit < 1.0 ? 1.3 : 1.0) * (comp < 1.0 ? 1.8 : 1.0); 
-            const d = Math.round((surg === 'lap_minor' ? 7 : 14) * delay);
-            const l = Math.round((surg === 'lap_minor' ? 4 : 6) * delay);
-            
+            // Multiplier logic for delays based on fitness and complications
+            const delayMod = (fit < 1.0 ? 1.3 : 1.0) * (comp < 1.0 ? 1.8 : 1.0); 
+
+            // 1. Core Milestone Logic
+            const driveDays = Math.round((surg === 'lap_minor' ? 7 : 14) * delayMod);
+            const liftWks = Math.round((surg === 'lap_minor' ? 4 : 6) * delayMod);
+            const sexDays = Math.round((surg === 'lap_minor' ? 7 : 14) * delayMod);
+            const alcoholAdvice = (surg === 'lap_major') ? "Strict Avoid" : "Off Opioids";
+
+            // 2. UI Injection
             if(document.getElementById('rec-driving')) {
-                document.getElementById('rec-driving').innerText = d + " Days";
-                document.getElementById('rec-lifting').innerText = l + " Wks";
+                document.getElementById('rec-driving').innerText = driveDays + " Days";
+                document.getElementById('rec-lifting').innerText = liftWks + " Wks";
+                document.getElementById('rec-sex').innerText = sexDays + " Days";
+                document.getElementById('rec-alcohol').innerText = alcoholAdvice;
             }
 
-            const adjustedPoints = selected.map(s => Math.min(s * fit * comp, 100));
+            // 3. Generate Trajectory Curve
+            const adjustedPoints = selectedBaseline.map(val => Math.min(val * fit * comp, 100));
 
+            // 4. Return Data Package
             return {
                 primaryData: adjustedPoints,
-                secondaryData: selected,
-                primaryLabel: "Selected Profile", secondaryLabel: "Standard Path",
-                labelY: "Function (%)",
-                synthesisText: `RECOVERY: Estimated return to driving in ${d} days and lifting in ${l} weeks.`,
+                secondaryData: selectedBaseline,
+                primaryLabel: "Selected Patient Profile", 
+                secondaryLabel: "Standard ERAS Path",
+                labelY: "Functional Capacity (%)",
+                synthesisText: `RECOVERY: Expected return to driving ${driveDays} days, lifting ${liftWks} weeks, and intimacy ${sexDays} days. Alcohol: ${alcoholAdvice}.`,
                 rawData: { 
-                    mainMetric: d + " Days", label: "Driving Return", type: 'recovery',
+                    mainMetric: driveDays + " Days", 
+                    label: "Driving Return", 
+                    type: 'recovery',
                     chartPoints: adjustedPoints,
-                    chartLabels: ['D1', 'D7', 'D14', 'D21', '6W'] // Milestone markers
+                    chartLabels: ['D1', 'D7', 'D14', 'D21', '6W'] 
                 }
             };
         }
     },
-
     // ---------------------------------------------------------
     // 4. PRECISION ONCOLOGY
     // ---------------------------------------------------------
