@@ -313,59 +313,82 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
-// --- BULLETPROOF PDF EXPORT ENGINE (PORTRAIT EDITION) ---
+// --- BULLETPROOF PDF EXPORT ENGINE (PORTRAIT A4 EDITION) ---
 
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
-    const btn = event.target;
-    const originalText = btn.innerText;
+    // Safely grab the button that was clicked
+    const btn = window.event ? window.event.target : document.querySelector('button.active'); 
+    const originalText = btn ? btn.innerText : 'Download Evidence PDF';
     
     // 1. UI Feedback & Preparation
-    btn.innerText = "Processing...";
-    btn.disabled = true;
-    btn.style.display = 'none'; // Hide button from the printout
+    if (btn) {
+        btn.innerText = "Processing Document...";
+        btn.disabled = true;
+        btn.style.display = 'none'; // Hide button from the printout
+    }
     window.scrollTo(0, 0);
 
-    // 2. The Chart.js "Freeze" Trick
-    // We swap the live chart for a static image so it doesn't explode during capture
+    // 2. Inject Temporary A4 Print Stylesheet
+    // This locks the width safely without destroying your existing CSS classes
+    const printStyle = document.createElement('style');
+    printStyle.id = 'pdf-print-styles';
+    printStyle.innerHTML = `
+        #printable-area {
+            width: 800px !important;
+            min-width: 800px !important;
+            max-width: 800px !important;
+            margin: 0 auto !important; /* Center safely */
+            padding: 30px !important;
+            box-sizing: border-box !important;
+            background: white !important;
+        }
+        #printable-area .grid {
+            display: flex !important;
+            flex-direction: column !important; /* Forces layout into a vertical stack */
+            gap: 20px !important;
+        }
+        #printable-area .ee-sidebar {
+            width: 100% !important;
+            border-right: none !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+            padding-bottom: 20px !important;
+        }
+    `;
+    document.head.appendChild(printStyle);
+
+    // 3. Pause to allow mobile browsers (Safari) to physically repaint the screen
+    await new Promise(r => setTimeout(r, 200));
+
+    // 4. The Chart.js "Freeze" Trick
+    // Swap live chart for a static image to prevent resize explosions
     const canvas = document.getElementById('mainChart');
     let tempImg = null;
     if (canvas) {
         tempImg = new Image();
-        tempImg.src = canvas.toDataURL('image/png', 1.0); // High-res capture
+        tempImg.src = canvas.toDataURL('image/png', 1.0);
         tempImg.style.width = '100%';
-        tempImg.style.maxWidth = '500px'; // Restrict width for neat portrait view
-        tempImg.style.height = 'auto';
+        tempImg.style.maxWidth = '600px'; 
         tempImg.style.margin = '0 auto';
         tempImg.style.display = 'block';
         
-        canvas.style.display = 'none'; // Hide live chart
+        canvas.style.display = 'none';
         canvas.parentNode.insertBefore(tempImg, canvas);
     }
 
-    // 3. Force Portrait Dimensions & Vertical Stacking
-    const origCSS = element.style.cssText;
-    element.style.cssText = 'width: 800px; max-width: 800px; margin: 0 auto; padding: 20px; background: white;';
-    
-    // Temporarily force the grid to stack vertically for A4 Portrait
-    const grid = element.querySelector('.grid');
-    let origGridCSS = '';
-    if (grid) {
-        origGridCSS = grid.style.cssText;
-        grid.style.cssText = 'display: flex; flex-direction: column; gap: 20px;';
-    }
-
-    // 4. High-Res Portrait Configuration
+    // 5. PDF Configuration (Strict A4 Portrait)
     const opt = {
-        margin: 15, // Slightly larger margin for a professional look
+        margin: 10, 
         filename: filename + '-Evidence.pdf',
-        image: { type: 'jpeg', quality: 1.0 }, // Maxed out quality
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 3, // Bumped from 2 to 3 to fix the "low res" complaint
-            useCORS: true, 
-            windowWidth: 800 // The magic trick: forces mobile to render like desktop
+            scale: 2, // Best balance of resolution and mobile memory limit
+            useCORS: true,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 800 // Forces mobile to render like a desktop
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } // Switched to Portrait
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
     };
     
     try { 
@@ -373,22 +396,35 @@ async function exportToPDF(filename) {
     } 
     catch (err) { 
         console.error("PDF Export Error:", err);
-        alert("Failed to export the document. Check console."); 
+        alert("Failed to export the document. Please check console."); 
     } 
     finally { 
-        // 5. The Thaw: Instantly restore the UI
-        element.style.cssText = origCSS;
-        if (grid) grid.style.cssText = origGridCSS;
-        
-        if (canvas && tempImg) {
-            tempImg.parentNode.removeChild(tempImg); // Remove static image
-            canvas.style.display = 'block'; // Bring live chart back
-            if (currentChart) currentChart.resize(); // Force chart to fit box again
+        // 6. The Thaw: Instantly restore the UI
+        const injectedStyle = document.getElementById('pdf-print-styles');
+        if (injectedStyle) {
+            document.head.removeChild(injectedStyle); // Rip out the temporary CSS
         }
         
-        btn.style.display = 'block';
-        btn.innerText = originalText; 
-        btn.disabled = false; 
+        if (canvas && tempImg && tempImg.parentNode) {
+            tempImg.parentNode.removeChild(tempImg); 
+            canvas.style.display = 'block'; 
+            
+            // THE CHART SPILLOVER FIX:
+            // Give the browser 50ms to reflow the CSS back to normal, 
+            // THEN tell the chart to redraw itself to fit the normal box.
+            setTimeout(() => {
+                if (currentChart) {
+                    currentChart.resize();
+                    currentChart.update(); 
+                }
+            }, 50);
+        }
+        
+        if (btn) {
+            btn.style.display = 'block';
+            btn.innerText = originalText; 
+            btn.disabled = false; 
+        }
     }
 }
 
