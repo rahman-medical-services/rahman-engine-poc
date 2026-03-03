@@ -270,40 +270,48 @@ function renderConsentForm() {
         return;
     }
 
-    // Build the list of all models run
     let stackHTML = "";
-    session.stack.forEach(item => {
-        let metricsUI = item.raw?.mets ? 
-            `<p style="font-weight:700; color:var(--brand-cyan); margin:0;">Metrics: ${item.raw.mets} METs | Airway: ${item.raw.sb}/8</p>` : 
-            `<p style="font-weight:700; color:var(--brand-navy); margin:0;">${item.raw?.label || 'Finding'}: ${item.raw?.mainMetric || 'Recorded'}</p>`;
-        
+    // Build the loop with a canvas for each item
+    session.stack.forEach((item, index) => {
         stackHTML += `
-            <div style="margin-bottom: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+            <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; page-break-inside: avoid;">
                 <h4 style="margin: 0 0 10px 0; color: var(--brand-navy); border-bottom: 2px solid var(--brand-cyan); display: inline-block;">${item.shortName}</h4>
-                ${metricsUI}
-                <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p>
+                <div style="display: grid; grid-template-columns: 1fr 250px; gap: 20px; align-items: center;">
+                    <div>
+                        <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p>
+                    </div>
+                    <div style="height: 150px; width: 250px;">
+                        <canvas id="consent-chart-${index}"></canvas>
+                    </div>
+                </div>
             </div>`;
     });
 
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
-            <h2 style="color:var(--brand-navy); margin:0;">Integrated Clinical Consent</h2>
-            <p class="subtitle">Multi-Model Evidence Synthesis</p>
+            <h2 style="color:var(--brand-navy); margin:0;">Integrated Evidence & Consent</h2>
+            <p class="subtitle">Multi-Model Risk & Trajectory Synthesis</p>
             <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">
                 ${stackHTML}
             </div>
             <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
                 <label class="nav-label">Unified Patient Signature</label>
-                <div style="background:#fff; border:1px dashed #cbd5e1; height:150px; margin-top:15px; position:relative;">
+                <div style="background:#fff; border:1px dashed #cbd5e1; height:120px; margin-top:15px; position:relative;">
                     <canvas id="sig-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
                 </div>
             </div>
             <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
-                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Confirm & Print Consent PDF</button>
+                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Print Evidence Consent PDF</button>
                 <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return</button>
             </div>
             ${GLOBAL_DISCLAIMER}
         </div>`;
+
+    // CRITICAL: Now render the charts into the new canvases
+    session.stack.forEach((item, index) => {
+        renderConsentThumbnail(`consent-chart-${index}`, item);
+    });
+    
     initSignaturePad();
 }
 
