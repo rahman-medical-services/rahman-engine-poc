@@ -300,6 +300,18 @@ function renderConsentForm() {
                 <p class="subtitle" style="margin-top:5px;">Integrated Multi-Model Risk & Trajectory Synthesis</p>
             </div>
             
+            <div class="no-print" style="margin-bottom: 20px; background: #e0e7ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                <label class="nav-label" style="color:#3730a3;">Quick-Fill Clinical Template (Internal Use Only)</label>
+                <select class="ee-select" style="margin-bottom:0;" onchange="autoFillProcedure(this.value)">
+                    <option value="">-- Start Typing Manually OR Select a Template --</option>
+                    <option value="lap_chole">Laparoscopic Cholecystectomy</option>
+                    <option value="lap_hernia">Laparoscopic Inguinal Hernia</option>
+                    <option value="open_hernia">Open Hernia Repair</option>
+                    <option value="lap_fundoplication">Laparoscopic Fundoplication</option>
+                    <option value="bariatric_bypass">Gastric Bypass (Roux-en-Y)</option>
+                </select>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; page-break-inside: avoid;">
                 <div>
                     <label class="nav-label">Patient Name</label>
@@ -311,7 +323,7 @@ function renderConsentForm() {
                 </div>
                 <div style="grid-column: span 2;">
                     <label class="nav-label">Proposed Procedure</label>
-                    <input type="text" class="ee-select print-input" placeholder="Specify Procedure (e.g., Laparoscopic Cholecystectomy)" style="margin-bottom:0;">
+                    <input type="text" id="consent-proc-name" class="ee-select print-input" placeholder="Specify Procedure" style="margin-bottom:0; font-weight:700;">
                 </div>
             </div>
 
@@ -319,7 +331,7 @@ function renderConsentForm() {
                 
                 <div style="margin-bottom: 20px;">
                     <label class="nav-label">Intended Benefits & Specific Risks</label>
-                    <textarea class="ee-select print-input print-textarea" rows="3" placeholder="Detail standard risks (e.g., bleeding, infection, visceral injury, DVT/PE) and intended benefits..." style="resize:vertical; font-family:inherit; font-size:0.95rem; margin-bottom:0;"></textarea>
+                    <textarea id="consent-risk-text" class="ee-select print-input print-textarea" rows="3" placeholder="Detail standard risks (e.g., bleeding, infection, visceral injury, DVT/PE) and intended benefits..." style="resize:vertical; font-family:inherit; font-size:0.95rem; margin-bottom:0; line-height:1.5;"></textarea>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
@@ -391,6 +403,12 @@ function renderConsentForm() {
     
     // 4. Initialize the signature pad correctly
     initSignaturePad();
+
+    // 5. Attach the auto-resize listener to the risk text box
+    const riskBox = document.getElementById('consent-risk-text');
+    if (riskBox) {
+        riskBox.addEventListener('input', function() { autoResize(this); });
+    }
 }
 
 // --- SIGNATURE PAD LOGIC ---
