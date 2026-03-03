@@ -237,61 +237,83 @@ function runCalculation(type) {
 }
 
 // --- DIGITAL CONSENT MODULE ---
+/**
+ * UNIVERSAL DIGITAL CONSENT RENDERER
+ * Detects session data and builds a legal framework for patient signature
+ */
 function renderConsentForm() {
     const mount = document.getElementById('content-mount');
     const session = window.PatientSession;
-    const data = session.rawModelData || { mets: "--", sb: "--", isHighRisk: false };
+    const data = session.rawModelData;
 
+    // 1. DYNAMIC METRIC DETECTOR
+    // Builds different tables based on whether we have readiness data or trial probabilities
+    let metricHTML = "";
+    if (data && data.mets) {
+        // Mode: Readiness Assessment Table
+        metricHTML = `
+            <table style="width:100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; border: 1px solid #e2e8f0;">
+                <tr style="background: var(--brand-navy); color: white;">
+                    <th style="padding: 12px; text-align: left;">Clinical Metric</th>
+                    <th style="padding: 12px; text-align: left;">Reference Baseline</th>
+                    <th style="padding: 12px; text-align: left;">Your Assessment</th>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px; font-weight:600;">Functional Capacity (METs)</td>
+                    <td style="padding: 12px;">> 4.0 (Standard)</td>
+                    <td style="padding: 12px; font-weight:800; color:${data.mets < 4 ? '#ef4444' : '#10b981'}">${data.mets}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; font-weight:600;">Airway Score (STOP-BANG)</td>
+                    <td style="padding: 12px;">< 3 (Low Risk)</td>
+                    <td style="padding: 12px; font-weight:800; color:${data.sb >= 5 ? '#ef4444' : '#10b981'}">${data.sb}/8</td>
+                </tr>
+            </table>`;
+    } else if (data && data.mainMetric) {
+        // Mode: Trial Evidence (RELAPSTONE/INCA)
+        metricHTML = `
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0; text-align: center;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">${data.label}</div>
+                <div style="font-size: 2.5rem; font-weight: 800; color: var(--brand-navy); margin: 5px 0;">${data.mainMetric}</div>
+                <div style="font-size: 0.85rem; color: #64748b;">Statistically modeled based on selected clinical profile.</div>
+            </div>`;
+    } else {
+        metricHTML = `<div style="padding:20px; color:#ef4444; font-weight:bold; text-align:center; border:2px dashed #fecdd3; border-radius:12px; margin:20px 0;">No Clinical Assessment Data Found. Please run a calculator before generating consent.</div>`;
+    }
+
+    // 2. PAINT THE LEGAL FRAMEWORK
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
             <h2 style="color:var(--brand-navy); margin:0;">Digital Consent & Risk Acknowledgement</h2>
-            <p class="subtitle">Personalised Pathway for ${session.procedureID || 'Selected Pathway'}</p>
+            <p class="subtitle">Integration of Evidence for ${session.procedureID || 'Selected Pathway'}</p>
 
-            <table style="width:100%; border-collapse: collapse; margin: 25px 0;">
-                <thead>
-                    <tr style="background: var(--brand-navy); color: white;">
-                        <th style="padding: 12px; text-align: left; border-radius: 8px 0 0 0;">Assessment Metric</th>
-                        <th style="padding: 12px; text-align: left;">Reference Baseline</th>
-                        <th style="padding: 12px; text-align: left; border-radius: 0 8px 0 0;">Your Profile</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 12px; font-weight:600;">Functional Capacity (METs)</td>
-                        <td style="padding: 12px;">> 4.0</td>
-                        <td style="padding: 12px; font-weight:800; color:${data.mets < 4 ? '#ef4444' : '#10b981'}">${data.mets}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 12px; font-weight:600;">Airway Score (STOP-BANG)</td>
-                        <td style="padding: 12px;">< 3 / 8</td>
-                        <td style="padding: 12px; font-weight:800; color:${data.sb >= 5 ? '#ef4444' : '#10b981'}">${data.sb}</td>
-                    </tr>
-                </tbody>
-            </table>
+            ${metricHTML}
 
-            <div style="background:#f8fafc; padding:25px; border-radius:12px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
-                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Evidence Synthesis:</h3>
-                <p style="margin:0; line-height:1.6;">${session.calculatorResult || 'Assessment required to generate risk data.'}</p>
+            <div style="background:#f1f5f9; padding:20px; border-radius:8px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
+                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Clinical Synthesis:</h3>
+                <p style="margin:0; line-height:1.6; font-size:1rem;">${session.calculatorResult || '---'}</p>
             </div>
 
             <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
-                <label class="nav-label">Patient Acknowledgement Signature</label>
-                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:150px; margin-top:15px; position:relative; border-radius:8px;">
-                    <canvas id="sig-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
-                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:5px 10px; font-size:0.7rem;">Clear</button>
+                <label class="nav-label" style="display:block; margin-bottom:10px;">Patient Acknowledgement Signature</label>
+                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:150px; position:relative; border-radius:8px; cursor:crosshair;">
+                    <canvas id="sig-canvas" style="width:100%; height:100%; touch-action:none;"></canvas>
+                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:5px 10px; font-size:0.7rem; background:#eee; border:1px solid #ccc; cursor:pointer;">Clear</button>
                 </div>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">By signing, I confirm I have reviewed the clinical metrics and discussed them with my team.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">I confirm that I have reviewed the clinical metrics identified above and have discussed the risks/benefits of the proposed pathway with the clinical team.</p>
             </div>
 
             <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
                 <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Confirm & Print Consent PDF</button>
-                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return to Dashboard</button>
+                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Cancel</button>
             </div>
             
-            <div class="governance-box" style="margin-top:30px;">System Timestamp: ${session.lastUpdate || 'Session Initialised'}</div>
+            <div class="governance-box">System Timestamp: ${session.lastUpdate || 'Session Start'}</div>
             ${GLOBAL_DISCLAIMER}
         </div>
     `;
+    
+    // Re-initialize the canvas logic for the new element
     initSignaturePad();
 }
 
