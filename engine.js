@@ -261,28 +261,27 @@ function runCalculation(type) {
  * UNIVERSAL DIGITAL CONSENT RENDERER
  * Dynamically switches layouts based on the clinical session data
  */
+/**
+ * UNIVERSAL DIGITAL CONSENT RENDERER
+ * Multi-Model Accumulator with Thumbnail Charts
+ */
 function renderConsentForm() {
     const mount = document.getElementById('content-mount');
     const session = window.PatientSession;
 
-    if (session.stack.length === 0) {
+    if (!session || session.stack.length === 0) {
         mount.innerHTML = `<div class="widget-container" style="text-align:center; padding:100px;"><h3>No Clinical Data Found</h3><p>Run a module first.</p></div>`;
         return;
     }
 
     let stackHTML = "";
-    // Build the loop with a canvas for each item
     session.stack.forEach((item, index) => {
         stackHTML += `
             <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; page-break-inside: avoid;">
                 <h4 style="margin: 0 0 10px 0; color: var(--brand-navy); border-bottom: 2px solid var(--brand-cyan); display: inline-block;">${item.shortName}</h4>
                 <div style="display: grid; grid-template-columns: 1fr 250px; gap: 20px; align-items: center;">
-                    <div>
-                        <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p>
-                    </div>
-                    <div style="height: 150px; width: 250px;">
-                        <canvas id="consent-chart-${index}"></canvas>
-                    </div>
+                    <div><p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p></div>
+                    <div style="height: 150px; width: 250px;"><canvas id="consent-chart-${index}"></canvas></div>
                 </div>
             </div>`;
     });
@@ -291,13 +290,11 @@ function renderConsentForm() {
         <div class="widget-container" id="printable-area">
             <h2 style="color:var(--brand-navy); margin:0;">Integrated Evidence & Consent</h2>
             <p class="subtitle">Multi-Model Risk & Trajectory Synthesis</p>
-            <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">
-                ${stackHTML}
-            </div>
+            <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">${stackHTML}</div>
             <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
                 <label class="nav-label">Unified Patient Signature</label>
                 <div style="background:#fff; border:1px dashed #cbd5e1; height:120px; margin-top:15px; position:relative;">
-                    <canvas id="sig-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
+                    <canvas id="sig-canvas"></canvas>
                 </div>
             </div>
             <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
@@ -307,31 +304,24 @@ function renderConsentForm() {
             ${GLOBAL_DISCLAIMER}
         </div>`;
 
-    // CRITICAL: Now render the charts into the new canvases
-    session.stack.forEach((item, index) => {
-        renderConsentThumbnail(`consent-chart-${index}`, item);
-    });
-    
+    session.stack.forEach((item, index) => renderConsentThumbnail(`consent-chart-${index}`, item));
     initSignaturePad();
 }
 
-// --- SIGNATURE PAD LOGIC ---function initSignaturePad() {
+// --- SIGNATURE PAD LOGIC ---
+function initSignaturePad() {
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
     
     sigCtx = canvas.getContext('2d');
-    
-    // 1. FIX: Force the canvas to match its visual size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    // 2. FIX: Style the line for clinical professional look
     sigCtx.strokeStyle = "#0f172a";
     sigCtx.lineWidth = 2.5;
     sigCtx.lineCap = "round";
 
-    // 3. FIX: Handle BOTH Mouse and Touch events
     const getPos = (e) => {
         const r = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -344,7 +334,7 @@ function renderConsentForm() {
         const pos = getPos(e);
         sigCtx.beginPath();
         sigCtx.moveTo(pos.x, pos.y);
-        if (e.touches) e.preventDefault(); // Stop scrolling while signing
+        if (e.touches) e.preventDefault(); 
     };
 
     const move = (e) => {
@@ -357,11 +347,9 @@ function renderConsentForm() {
 
     const stop = () => { signatureDrawing = false; };
 
-    // Event Listeners
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mousemove', move);
     window.addEventListener('mouseup', stop);
-
     canvas.addEventListener('touchstart', start, { passive: false });
     canvas.addEventListener('touchmove', move, { passive: false });
     canvas.addEventListener('touchend', stop);
