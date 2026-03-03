@@ -412,12 +412,12 @@ calculate: function() {
                 document.getElementById('rec-alcohol').innerText = surg === 'lap_major' ? "Strict Avoid" : "Off Opioids";
             }
 
-            return {
-                primaryData: selected.map(s => Math.min(s * fit * compMod, 100)),
-                secondaryData: selected,
-                primaryLabel: "Adjusted Trajectory", secondaryLabel: "Standard Uncomplicated Path",
-                labelY: "Return to Normal Function (%)"
-            };
+        return {
+    primaryData: this.baselines[surg].map(s => Math.min(s * fit * compMod, 100)),
+    secondaryData: this.baselines[surg],
+    synthesisText: `RECOVERY: Est. return to driving ${driveDays} days, lifting ${liftWks} weeks.`,
+    rawData: { mainMetric: driveDays + " Days", label: "Est. Driving Return", type: 'recovery' }
+};
         }
     },
 
