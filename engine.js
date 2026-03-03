@@ -438,17 +438,18 @@ function renderConsentThumbnail(id, item) {
     };
 
     if (type === 'readiness') {
-        chartConfig.type = 'bar';
-        chartConfig.data = {
-            labels: ['Patient', 'Limit'],
-            datasets: [{
-                data: [item.raw.mets, 4.0],
-                backgroundColor: [item.raw.isHighRisk ? '#ef4444' : '#10b981', '#94a3b8']
-            }]
-        };
-        // Hide X axis for the bar chart as it uses standard labels
-        chartConfig.options.scales.x.ticks.callback = (v, i) => chartConfig.data.labels[i];
-    } else {
+    chartConfig.type = 'bar';
+    chartConfig.data = {
+        labels: ['Patient', 'Limit'],
+        datasets: [{
+            data: [item.raw.mets, 4.0],
+            backgroundColor: [item.raw.isHighRisk ? '#ef4444' : '#10b981', '#94a3b8']
+        }]
+    };
+    // FIX: Set a realistic Y-axis for METs
+    chartConfig.options.scales.y.suggestedMax = 12; 
+    chartConfig.options.scales.y.title = { display: true, text: 'METs', font: { size: 8 } };
+} else {
         chartConfig.data.datasets.push({
             data: item.raw.chartPoints || [],
             borderColor: 'var(--brand-navy)',
