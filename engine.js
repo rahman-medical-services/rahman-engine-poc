@@ -9,13 +9,29 @@ let signatureDrawing = false;
 let sigCtx = null;
 
 // --- GLOBAL SESSION STATE ---
-// Bridge for passing calculator data to the future Consent UI
+/**
+ * Transforms session into a sequential stack.
+ * This allows multiple clinical findings to be bundled into one consent form.
+ */
 window.PatientSession = {
-    procedureID: "",
-    calculatorResult: "",
-    rawModelData: null, // Critical: Bridges specific metrics to Consent Table
-    lastUpdate: null
+    procedureID: "Multi-Model Synthesis",
+    lastUpdate: null,
+    stack: [] // Accumulator for multiple clinical findings
 };
+
+/**
+ * SESSION MANAGEMENT
+ * Clears the clinical stack and reset UI for a new patient encounter.
+ */
+function resetPatientSession() {
+    if (confirm("Clear all clinical findings for a new patient?")) {
+        window.PatientSession.stack = [];
+        window.PatientSession.lastUpdate = new Date().toLocaleString();
+        renderWelcomeScreen();
+        // Safety check before calling signature clearing
+        if (typeof clearSignature === 'function') clearSignature();
+    }
+}
 
 const GLOBAL_DISCLAIMER = `
     <div class="pdf-disclaimer">
@@ -214,24 +230,26 @@ function runCalculation(type) {
     const results = trial.calculate();
     
     if (results) {
-        // Sync Global Session
-        window.PatientSession.procedureID = trial.shortName;
-        window.PatientSession.calculatorResult = results.synthesisText || "";
         window.PatientSession.lastUpdate = new Date().toLocaleString();
+        
+        // 1. Capture the finding into the stack
+        const existingIndex = window.PatientSession.stack.findIndex(i => i.id === type);
+        const entry = {
+            id: type,
+            shortName: trial.shortName,
+            synthesis: results.synthesisText,
+            raw: JSON.parse(JSON.stringify(window.PatientSession.rawModelData || {}))
+        };
 
-        const outputBox = document.getElementById('dynamic-output-box');
-        if (outputBox && results.outputHTML) {
-            outputBox.innerHTML = results.outputHTML;
-            outputBox.style.display = 'block';
-        }
+        if (existingIndex > -1) window.PatientSession.stack[existingIndex] = entry;
+        else window.PatientSession.stack.push(entry);
 
-        const initialMsg = document.getElementById('initial-message');
-        if (initialMsg) initialMsg.style.display = 'none';
-
-        if (results.primaryData) {
-            renderChart('mainChart', results, trial.color, trial.xAxisLabels);
-        }
-
+        // 2. Standard UI updates
+        const out = document.getElementById('dynamic-output-box');
+        if (out && results.outputHTML) { out.innerHTML = results.outputHTML; out.style.display = 'block'; }
+        const msg = document.getElementById('initial-message');
+        if (msg) msg.style.display = 'none';
+        if (results.primaryData) renderChart('mainChart', results, trial.color, trial.xAxisLabels);
         if (results.synthesisText) exportToQualtrics(results.synthesisText);
     }
 }
@@ -244,79 +262,46 @@ function runCalculation(type) {
 function renderConsentForm() {
     const mount = document.getElementById('content-mount');
     const session = window.PatientSession;
-    const data = session.rawModelData;
 
-    // 1. DYNAMIC METRIC DETECTOR
-    let metricHTML = "";
-    if (data && data.mets) {
-        // Layout: Multi-Metric Risk Table (Readiness Assessment)
-        metricHTML = `
-            <table style="width:100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; border: 1px solid #e2e8f0;">
-                <tr style="background: var(--brand-navy); color: white;">
-                    <th style="padding: 12px; text-align: left;">Clinical Metric</th>
-                    <th style="padding: 12px; text-align: left;">Reference Baseline</th>
-                    <th style="padding: 12px; text-align: left;">Your Assessment</th>
-                </tr>
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 12px; font-weight:600;">Functional Capacity (METs)</td>
-                    <td style="padding: 12px;">> 4.0 (Standard)</td>
-                    <td style="padding: 12px; font-weight:800; color:${data.mets < 4 ? '#ef4444' : '#10b981'}">${data.mets}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight:600;">Airway Score (STOP-BANG)</td>
-                    <td style="padding: 12px;">< 3 (Low Risk)</td>
-                    <td style="padding: 12px; font-weight:800; color:${data.sb >= 5 ? '#ef4444' : '#10b981'}">${data.sb}/8</td>
-                </tr>
-            </table>`;
-    } else if (data && data.mainMetric) {
-        // Layout: Single Probability Widget (RELAPSTONE, INCA, etc.)
-        metricHTML = `
-            <div style="background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0; text-align: center;">
-                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">${data.label}</div>
-                <div style="font-size: 2.8rem; font-weight: 800; color: var(--brand-navy); margin: 5px 0;">${data.mainMetric}</div>
-                <div style="font-size: 0.85rem; color: #64748b;">Statistically synthesized evidence for the proposed pathway.</div>
-            </div>`;
-    } else {
-        // Error State: No session data detected
-        metricHTML = `<div style="padding:30px; color:#ef4444; font-weight:bold; text-align:center; border:2px dashed #fecdd3; border-radius:12px; margin:20px 0;">No Clinical Assessment Data Found. <br>Please run a calculator before generating consent.</div>`;
+    if (session.stack.length === 0) {
+        mount.innerHTML = `<div class="widget-container" style="text-align:center; padding:100px;"><h3>No Clinical Data Found</h3><p>Run a module first.</p></div>`;
+        return;
     }
 
-    // 2. PAINT THE LEGAL ACKNOWLEDGEMENT FRAMEWORK
+    // Build the list of all models run
+    let stackHTML = "";
+    session.stack.forEach(item => {
+        let metricsUI = item.raw?.mets ? 
+            `<p style="font-weight:700; color:var(--brand-cyan); margin:0;">Metrics: ${item.raw.mets} METs | Airway: ${item.raw.sb}/8</p>` : 
+            `<p style="font-weight:700; color:var(--brand-navy); margin:0;">${item.raw?.label || 'Finding'}: ${item.raw?.mainMetric || 'Recorded'}</p>`;
+        
+        stackHTML += `
+            <div style="margin-bottom: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                <h4 style="margin: 0 0 10px 0; color: var(--brand-navy); border-bottom: 2px solid var(--brand-cyan); display: inline-block;">${item.shortName}</h4>
+                ${metricsUI}
+                <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin-top: 10px;">${item.synthesis}</p>
+            </div>`;
+    });
+
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
-            <div class="header-flex">
-                <h2 style="color:var(--brand-navy); margin:0;">Digital Consent & Risk Acknowledgement</h2>
-                <span class="source-tag">v2.1 Regulatory Build</span>
+            <h2 style="color:var(--brand-navy); margin:0;">Integrated Clinical Consent</h2>
+            <p class="subtitle">Multi-Model Evidence Synthesis</p>
+            <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">
+                ${stackHTML}
             </div>
-            <p class="subtitle">Evidence-Driven Agreement for ${session.procedureID || 'Selected Clinical Pathway'}</p>
-
-            ${metricHTML}
-
-            <div style="background:#f1f5f9; padding:25px; border-radius:12px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
-                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Evidence Synthesis:</h3>
-                <p style="margin:0; line-height:1.6; font-size:1.05rem;">${session.calculatorResult || '---'}</p>
-            </div>
-
             <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
-                <label class="nav-label" style="display:block; margin-bottom:10px;">Patient Acknowledgement Signature</label>
-                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:160px; position:relative; border-radius:8px; cursor:crosshair;">
-                    <canvas id="sig-canvas" style="width:100%; height:100%; touch-action:none;"></canvas>
-                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:6px 12px; font-size:0.75rem; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; font-weight:700;">Clear Signature</button>
+                <label class="nav-label">Unified Patient Signature</label>
+                <div style="background:#fff; border:1px dashed #cbd5e1; height:150px; margin-top:15px; position:relative;">
+                    <canvas id="sig-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
                 </div>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:12px;">By signing, I confirm I have reviewed the specific metrics identified above and have discussed the risks and benefits of the proposed pathway with my surgical team.</p>
             </div>
-
             <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
-                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy); font-size:1rem;" onclick="window.print()">Confirm & Print Consent PDF</button>
-                <button class="nav-btn" style="flex:1; height:55px;" onclick="renderWelcomeScreen()">Cancel</button>
+                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Confirm & Print Consent PDF</button>
+                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return</button>
             </div>
-            
-            <div class="governance-box">Clinical Timestamp: ${session.lastUpdate || 'Session Initialised'}</div>
             ${GLOBAL_DISCLAIMER}
-        </div>
-    `;
-    
-    // 4. RE-INITIALISE INTERACTION
+        </div>`;
     initSignaturePad();
 }
 
