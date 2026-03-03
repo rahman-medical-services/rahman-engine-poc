@@ -313,7 +313,6 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
-// --- BULLETPROOF PDF EXPORT ENGINE (TRUE A4 PORTRAIT) ---
 async function exportToPDF(filename) {
     const originalElement = document.getElementById('printable-area');
     const btn = window.event ? window.event.target : null;
@@ -324,21 +323,25 @@ async function exportToPDF(filename) {
         btn.disabled = true;
     }
 
-    // 1. Create the "Ghost Clone"
+    // 1. Create the Ghost Clone and remove ID to prevent conflicts
     const ghost = originalElement.cloneNode(true);
+    ghost.id = 'pdf-ghost';
     
-    // 2. Style the Ghost for A4 (Off-screen)
+    // 2. Position it behind the main app (Hidden but 'visible' to camera)
     Object.assign(ghost.style, {
-        position: 'absolute',
-        left: '-10000px',
+        position: 'fixed',
+        left: '0',
         top: '0',
         width: '794px',
         backgroundColor: 'white',
-        zIndex: '-1'
+        zIndex: '-9999', // Behind everything
+        opacity: '1',
+        visibility: 'visible',
+        display: 'block'
     });
     document.body.appendChild(ghost);
 
-    // 3. Force Vertical Stacking in the Ghost
+    // 3. Force Portrait Layout
     const grid = ghost.querySelector('.grid');
     if (grid) {
         grid.style.display = 'flex';
@@ -346,19 +349,28 @@ async function exportToPDF(filename) {
         grid.style.gap = '20px';
     }
 
-    // 4. Snap the Chart as a Static Image
+    // 4. Transform Chart to Image with a "Ready" Promise
     const originalCanvas = originalElement.querySelector('canvas');
     const ghostCanvasPlace = ghost.querySelector('canvas');
     
     if (originalCanvas && ghostCanvasPlace) {
         const chartImg = new Image();
-        chartImg.src = originalCanvas.toDataURL('image/png', 1.0);
+        
+        // Wrap in a promise to ensure image is loaded before PDF snaps
+        const imageLoadPromise = new Promise((resolve) => {
+            chartImg.onload = resolve;
+            chartImg.src = originalCanvas.toDataURL('image/png', 1.0);
+        });
+
         chartImg.style.width = '100%';
         chartImg.style.maxWidth = '650px';
         chartImg.style.display = 'block';
         chartImg.style.margin = '0 auto';
         
         ghostCanvasPlace.parentNode.replaceChild(chartImg, ghostCanvasPlace);
+        
+        // Wait for the image to actually exist in memory
+        await imageLoadPromise;
     }
 
     // 5. PDF Settings
@@ -369,18 +381,23 @@ async function exportToPDF(filename) {
         html2canvas: { 
             scale: 2, 
             useCORS: true,
-            width: 794 // Ensures the 'camera' captures the full width of the ghost
+            logging: false,
+            width: 794
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
+        // Short pause for the DOM to settle
+        await new Promise(r => setTimeout(r, 100));
         await html2pdf().set(opt).from(ghost).save();
     } catch (err) {
         console.error("PDF Export Error:", err);
     } finally {
         // 6. Cleanup
-        document.body.removeChild(ghost);
+        if (document.getElementById('pdf-ghost')) {
+            document.body.removeChild(ghost);
+        }
         if (btn) {
             btn.innerText = originalText;
             btn.disabled = false;
