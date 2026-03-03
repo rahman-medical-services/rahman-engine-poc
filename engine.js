@@ -274,6 +274,7 @@ function renderConsentForm() {
         return;
     }
 
+    // 1. Generate the Clinical Evidence Stack HTML (with mobile Flexbox fix)
     let stackHTML = "";
     session.stack.forEach((item, index) => {
         stackHTML += `
@@ -290,8 +291,10 @@ function renderConsentForm() {
             </div>`;
     });
 
+    // 2. Assemble the Full Consent Document
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
+            
             <div style="text-align:center; margin-bottom: 30px;">
                 <h2 style="color:var(--brand-navy); margin:0;">Consent for Examination or Treatment</h2>
                 <p class="subtitle" style="margin-top:5px;">Integrated Multi-Model Risk & Trajectory Synthesis</p>
@@ -312,28 +315,62 @@ function renderConsentForm() {
                 </div>
             </div>
 
-            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; color: #334155; page-break-inside: avoid;">
-                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Health Professional</h4>
-                <p style="margin-bottom:20px;">I have explained the proposed procedure, including intended benefits and serious or frequently occurring risks. I have discussed alternatives (including watchful waiting) and utilized the objective clinical models below to illustrate the patient's individualized risk profile and recovery trajectory. The patient has been given the opportunity to ask questions.</p>
+            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 30px; page-break-inside: avoid;">
                 
-                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Patient</h4>
-                <p style="margin:0;">I agree to the procedure described above. I confirm I have read and understood the evidence synthesis provided below. I understand that the charts represent statistical probabilities and not guarantees of my specific outcome. I have had the opportunity to discuss alternatives and ask questions.</p>
+                <div style="margin-bottom: 20px;">
+                    <label class="nav-label">Intended Benefits & Specific Risks</label>
+                    <textarea class="ee-select print-input print-textarea" rows="3" placeholder="Detail standard risks (e.g., bleeding, infection, visceral injury, DVT/PE) and intended benefits..." style="resize:vertical; font-family:inherit; font-size:0.95rem; margin-bottom:0;"></textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+                    <div>
+                        <label class="nav-label">Proposed Anesthesia</label>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                            <label class="ee-check-group"><input type="checkbox"> General Anesthesia</label>
+                            <label class="ee-check-group"><input type="checkbox"> Regional (Spinal/Epidural)</label>
+                            <label class="ee-check-group"><input type="checkbox"> Local Anesthesia</label>
+                            <label class="ee-check-group"><input type="checkbox"> Sedation</label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="nav-label">Additional Consents & Checks</label>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                            <label class="ee-check-group"><input type="checkbox"> <strong>Blood Transfusion:</strong> Consent given</label>
+                            <label class="ee-check-group"><input type="checkbox"> <strong>Histopathology:</strong> Consent for tissue retention/testing</label>
+                            <label class="ee-check-group"><input type="checkbox"> <strong>Photography:</strong> Consent for clinical/educational imaging</label>
+                            <label class="ee-check-group"><input type="checkbox"> <strong>Pregnancy:</strong> Patient confirms not pregnant / N/A</label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <h3 style="color:var(--brand-navy); margin-bottom: 15px; border-bottom: 2px solid var(--brand-cyan); display: inline-block;">Personalized Evidence Synthesis</h3>
             <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">
                 ${stackHTML}
             </div>
-            
+
+            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; color: #334155; page-break-inside: avoid;">
+                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Health Professional</h4>
+                <p style="margin-bottom:20px;">I have explained the proposed procedure, including intended benefits and serious or frequently occurring risks. I have discussed alternatives (including watchful waiting) and utilized the objective clinical models to illustrate the patient's individualized risk profile and recovery trajectory. The patient has been given the opportunity to ask questions.</p>
+                
+                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Patient</h4>
+                <p style="margin:0;">I agree to the procedure described above. I confirm I have read and understood the evidence synthesis provided. I understand that the charts represent statistical probabilities and not guarantees of my specific outcome. I have had the opportunity to discuss alternatives and ask questions.</p>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; page-break-inside: avoid;">
                 <div style="border: 2px solid var(--brand-navy); padding:20px; border-radius:12px; background:white;">
                     <label class="nav-label">Clinician Declaration</label>
                     <input type="text" class="ee-select print-input" placeholder="Clinician Name / Signature" style="margin-top:15px; margin-bottom:0; border: none; border-bottom: 1px dashed #cbd5e1; border-radius:0; padding-left:0; font-family:inherit;">
                     <input type="date" class="ee-select print-input" style="margin-top:10px; margin-bottom:0; border: none; border-bottom: 1px dashed #cbd5e1; border-radius:0; padding-left:0; color: var(--text-muted); font-family:inherit;">
                 </div>
-                <div style="border: 2px solid var(--brand-navy); padding:20px; border-radius:12px; background:white;">
-                    <label class="nav-label">Unified Patient Signature</label>
-                    <div style="background:#fff; border:1px dashed #cbd5e1; height:100px; margin-top:15px; position:relative;">
+                
+                <div style="border: 2px solid var(--brand-navy); padding:20px; border-radius:12px; background:white; position:relative;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label class="nav-label" style="margin:0;">Unified Patient Signature</label>
+                        <button class="no-print" onclick="clearSignature()" style="background:none; border:1px solid #cbd5e1; border-radius:4px; font-size:0.7rem; cursor:pointer; padding:3px 8px; color:var(--text-muted);">Clear Pad</button>
+                    </div>
+                    <div style="background:#fff; border:1px dashed #cbd5e1; height:100px; margin-top:10px; position:relative;">
                         <canvas id="sig-canvas"></canvas>
                     </div>
                 </div>
@@ -349,7 +386,10 @@ function renderConsentForm() {
             </div>
         </div>`;
 
+    // 3. Render the mini-charts into the newly created canvases
     session.stack.forEach((item, index) => renderConsentThumbnail(`consent-chart-${index}`, item));
+    
+    // 4. Initialize the signature pad correctly
     initSignaturePad();
 }
 
