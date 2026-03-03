@@ -391,8 +391,7 @@ function renderConsentThumbnail(id, item) {
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, beginAtZero: true } } }
     };
 
-    if (type === 'readiness') {
-        // Bar Chart: METs vs Threshold
+if (type === 'readiness') {
         chartConfig.type = 'bar';
         chartConfig.data = {
             labels: ['Patient', 'Threshold'],
@@ -401,16 +400,15 @@ function renderConsentThumbnail(id, item) {
                 backgroundColor: [item.raw.isHighRisk ? '#ef4444' : '#10b981', '#94a3b8']
             }]
         };
-    } else if (type === 'recovery' || type === 'evidence') {
-        // Trajectory / Trial Curves: Reuse existing model data
-        // Note: This requires the original primaryData to be saved in the stack
+    } else if (type === 'recovery' || type === 'evidence') { // Added 'recovery'
         chartConfig.data = {
-            labels: [1, 2, 3, 4, 5],
+            labels: ['D1', 'D3', 'D7', 'D14', 'D21', 'D28', '6W'],
             datasets: [{
-                data: item.raw.chartPoints || [], // You'll need to save primaryData to the stack in trials.js
-                borderColor: 'var(--brand-navy)',
+                data: item.raw.chartPoints || [],
+                borderColor: '#0ea5e9',
                 tension: 0.3,
-                fill: false
+                fill: false,
+                pointRadius: 4
             }]
         };
     }
