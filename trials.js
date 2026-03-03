@@ -8,7 +8,7 @@ const TRIAL_DATA = {
     // ---------------------------------------------------------
     // 1. WAITLIST TRIAGE & DEFLECTION 
     // ---------------------------------------------------------
-   relapstone: {
+relapstone: {
         category: "Waitlist Triage & Deflection", 
         type: "calculated", 
         shortName: "Gallstones (RELAPSTONE)",
@@ -23,8 +23,18 @@ const TRIAL_DATA = {
             <select id="calc-age" class="ee-select" onchange="runCalculation('relapstone')">
                 <option value="1.0">54 or younger</option><option value="0.57">Over 54</option>
             </select>
+            
             <label class="ee-check-group"><input type="checkbox" id="calc-mult" onchange="runCalculation('relapstone')"> Multiple Stones?</label>
-            <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L</label>
+            
+            <label class="ee-check-group" style="margin-top:10px; color:var(--brand-navy); font-weight:700;">
+                <input type="checkbox" id="toggle-admission" onchange="document.getElementById('admission-details').style.display = this.checked ? 'block' : 'none'; runCalculation('relapstone');"> 
+                Previous Hospital Admission?
+            </label>
+
+            <div id="admission-details" style="display:none; margin-left:20px; padding:10px; border-left:2px solid #cbd5e1; margin-bottom:15px;">
+                <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L (Blood Test)</label>
+                <label class="ee-check-group"><input type="checkbox" id="calc-ercp" onchange="runCalculation('relapstone')"> Previous ERCP Procedure?</label>
+            </div>
             
             <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Gallstone-Triage', this)">
                 Download Evidence PDF
@@ -33,27 +43,27 @@ const TRIAL_DATA = {
         footer_note: "Statistical probability of remaining symptom-free. Not a clinical recommendation.",
         calculate: function() {
             const ageMod = parseFloat(document.getElementById('calc-age')?.value) || 1;
-            const multStones = document.getElementById('calc-mult')?.checked;
-            const altHigh = document.getElementById('calc-alt')?.checked;
+            const multStones = document.getElementById('calc-mult')?.checked ? 1.19 : 1.0;
             
-            const hrTotal = ageMod * (multStones ? 1.19 : 1.0) * (altHigh ? 1.22 : 1.0);
+            // Only apply these if the admission toggle is active
+            const hasAdmission = document.getElementById('toggle-admission')?.checked;
+            const altHigh = (hasAdmission && document.getElementById('calc-alt')?.checked) ? 1.22 : 1.0;
+            const ercpMod = (hasAdmission && document.getElementById('calc-ercp')?.checked) ? 1.39 : 1.0;
+            
+            const hrTotal = ageMod * multStones * altHigh * ercpMod;
             const prob12m = Math.pow(this.baseline[12], hrTotal) * 100;
 
-            const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones ? 'Multiple stones' : 'Single stone'}.`;
+            const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones > 1 ? 'Multiple stones' : 'Single stone'}${ercpMod > 1 ? ', Post-ERCP' : ''}.`;
 
-            // MANDATORY: Bridge Data to Digital Consent Module
-            window.PatientSession.rawModelData = { 
-                mainMetric: prob12m.toFixed(0) + "%", 
-                label: "12m Symptom-Free Prob." 
-            };
-
+            // Updated Return Pattern: Using rawData to prevent cross-module leaks
             return {
                 primaryData: this.baseline.map(s => Math.pow(s, hrTotal) * 100),
                 secondaryData: this.baseline.map(s => s * 100),
                 primaryLabel: "Selected Patient Profile", 
                 secondaryLabel: "Standard Cohort Average",
                 labelY: "Probability of Pain-Free (%)",
-                synthesisText: synth 
+                synthesisText: synth,
+                rawData: { mainMetric: prob12m.toFixed(0) + "%", label: "12m Symptom-Free Prob.", type: 'evidence' }
             };
         }
     },
@@ -290,28 +300,37 @@ readiness: {
             </div>
         `,
         footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
-        calculate: function() {
-            let dasi = 0; 
-            document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
-            let mets = ((0.43 * dasi) + 9.6) / 3.5;
-            let sb = 0; 
-            document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
+calculate: function() {
+    let dasi = 0; 
+    document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
+    let mets = ((0.43 * dasi) + 9.6) / 3.5;
+    let sb = 0; 
+    document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-            // 1. Red-Zone Risk Logic
-            const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
-            const statusColor = isHighRisk ? "#ef4444" : "#10b981"; // Red vs Green
-            const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
+    // Capture Clinical Modifiers for the synthesis string
+    let modifiers = [];
+    if (document.getElementById('p-smoke')?.checked) modifiers.push("Current Smoker/Vaper");
+    if (document.getElementById('p-diab')?.checked) modifiers.push("Diabetes (HbA1c > 64)");
+    if (document.getElementById('p-thin')?.checked) modifiers.push("On Blood Thinners");
+    
+    let modString = modifiers.length > 0 ? " Identified Modifiers: " + modifiers.join(", ") + "." : " No additional clinical modifiers identified.";
 
-            let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
-            if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
-            if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
-            if (document.getElementById('p-thin')?.checked) pHTML += "• Active Anticoagulant Therapy.<br>";
-            if (document.getElementById('in-bmi')?.checked) pHTML += "• BMI > 35 (Associated with increased procedural complexity).<br>";
-            
-            if (pHTML === "<strong>Identified Clinical Modifiers:</strong><br>") {
-                pHTML = "No additional clinical modifiers identified from selection.";
-            }
+    const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
+    const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
 
+    // Update UI
+    document.getElementById('initial-message').style.display = 'none';
+    document.getElementById('web-narrative-display').style.display = 'block';
+    document.getElementById('out-mets').innerText = mets.toFixed(1);
+    document.getElementById('out-sb').innerText = sb + "/8";
+    document.getElementById('out-advice').innerText = isHighRisk ? "Calculated profile indicates variables associated with complex pathways." : "Profile aligns with standard baseline thresholds.";
+
+    // Return object including specific 'rawData' for THIS model
+    return { 
+        synthesisText: `READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.${modString}`,
+        rawData: { mets: mets.toFixed(1), sb: sb, isHighRisk: isHighRisk, type: 'readiness' }
+    }; 
+}
             // 2. Update UI with conditional styling
             document.getElementById('initial-message').style.display = 'none';
             document.getElementById('web-narrative-display').style.display = 'block';
