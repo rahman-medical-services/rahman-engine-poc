@@ -270,16 +270,15 @@ function renderConsentForm() {
     const session = window.PatientSession;
 
     if (!session || session.stack.length === 0) {
-        mount.innerHTML = `<div class="widget-container" style="text-align:center; padding:100px;"><h3>No Clinical Data Found</h3><p>Run a module first.</p></div>`;
+        mount.innerHTML = `<div class="widget-container" style="text-align:center; padding:100px;"><h3>No Clinical Data Found</h3><p>Run a clinical module first.</p></div>`;
         return;
     }
 
-   let stackHTML = "";
+    let stackHTML = "";
     session.stack.forEach((item, index) => {
         stackHTML += `
             <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; page-break-inside: avoid;">
                 <h4 style="margin: 0 0 10px 0; color: var(--brand-navy); border-bottom: 2px solid var(--brand-cyan); display: inline-block;">${item.shortName}</h4>
-                
                 <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
                     <div style="flex: 1 1 200px;">
                         <p style="font-size: 0.95rem; line-height: 1.5; color: #334155; margin: 0;">${item.synthesis}</p>
@@ -288,25 +287,66 @@ function renderConsentForm() {
                         <canvas id="consent-chart-${index}"></canvas>
                     </div>
                 </div>
-                
             </div>`;
     });
+
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
-            <h2 style="color:var(--brand-navy); margin:0;">Integrated Evidence & Consent</h2>
-            <p class="subtitle">Multi-Model Risk & Trajectory Synthesis</p>
-            <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">${stackHTML}</div>
-            <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
-                <label class="nav-label">Unified Patient Signature</label>
-                <div style="background:#fff; border:1px dashed #cbd5e1; height:120px; margin-top:15px; position:relative;">
-                    <canvas id="sig-canvas"></canvas>
+            <div style="text-align:center; margin-bottom: 30px;">
+                <h2 style="color:var(--brand-navy); margin:0;">Consent for Examination or Treatment</h2>
+                <p class="subtitle" style="margin-top:5px;">Integrated Multi-Model Risk & Trajectory Synthesis</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; page-break-inside: avoid;">
+                <div>
+                    <label class="nav-label">Patient Name</label>
+                    <input type="text" class="ee-select print-input" placeholder="Enter Full Name" style="margin-bottom:0;">
+                </div>
+                <div>
+                    <label class="nav-label">DOB / Identifier (MRN)</label>
+                    <input type="text" class="ee-select print-input" placeholder="DD/MM/YYYY - MRN" style="margin-bottom:0;">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label class="nav-label">Proposed Procedure</label>
+                    <input type="text" class="ee-select print-input" placeholder="Specify Procedure (e.g., Laparoscopic Cholecystectomy)" style="margin-bottom:0;">
                 </div>
             </div>
-            <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
-                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Print Evidence Consent PDF</button>
-                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return</button>
+
+            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; color: #334155; page-break-inside: avoid;">
+                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Health Professional</h4>
+                <p style="margin-bottom:20px;">I have explained the proposed procedure, including intended benefits and serious or frequently occurring risks. I have discussed alternatives (including watchful waiting) and utilized the objective clinical models below to illustrate the patient's individualized risk profile and recovery trajectory. The patient has been given the opportunity to ask questions.</p>
+                
+                <h4 style="margin:0 0 10px 0; color:var(--brand-navy);">Statement of Patient</h4>
+                <p style="margin:0;">I agree to the procedure described above. I confirm I have read and understood the evidence synthesis provided below. I understand that the charts represent statistical probabilities and not guarantees of my specific outcome. I have had the opportunity to discuss alternatives and ask questions.</p>
             </div>
-            ${GLOBAL_DISCLAIMER}
+
+            <h3 style="color:var(--brand-navy); margin-bottom: 15px; border-bottom: 2px solid var(--brand-cyan); display: inline-block;">Personalized Evidence Synthesis</h3>
+            <div style="background:#f1f5f9; padding:25px; border-radius:12px; margin-bottom:30px;">
+                ${stackHTML}
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; page-break-inside: avoid;">
+                <div style="border: 2px solid var(--brand-navy); padding:20px; border-radius:12px; background:white;">
+                    <label class="nav-label">Clinician Declaration</label>
+                    <input type="text" class="ee-select print-input" placeholder="Clinician Name / Signature" style="margin-top:15px; margin-bottom:0; border: none; border-bottom: 1px dashed #cbd5e1; border-radius:0; padding-left:0; font-family:inherit;">
+                    <input type="date" class="ee-select print-input" style="margin-top:10px; margin-bottom:0; border: none; border-bottom: 1px dashed #cbd5e1; border-radius:0; padding-left:0; color: var(--text-muted); font-family:inherit;">
+                </div>
+                <div style="border: 2px solid var(--brand-navy); padding:20px; border-radius:12px; background:white;">
+                    <label class="nav-label">Unified Patient Signature</label>
+                    <div style="background:#fff; border:1px dashed #cbd5e1; height:100px; margin-top:15px; position:relative;">
+                        <canvas id="sig-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
+                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Print Legal Consent PDF</button>
+                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return to Dashboard</button>
+            </div>
+            
+            <div style="margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; text-align:center;">
+                Generated by OutcomeLogic™ | This document acts as a supplementary record of Shared Decision Making and individualized risk communication.
+            </div>
         </div>`;
 
     session.stack.forEach((item, index) => renderConsentThumbnail(`consent-chart-${index}`, item));
