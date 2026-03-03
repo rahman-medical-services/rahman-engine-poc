@@ -272,10 +272,6 @@ readiness: {
                 <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="runCalculation('readiness')">
                     Synthesize Metrics
                 </button>
-                
-                <button class="nav-btn" style="margin-top:10px; width:100%; text-align:center; border: 1px solid var(--brand-navy); color: var(--brand-navy); background: white;" onclick="triggerExport('Surgical-Readiness', this)">
-                    Download Evidence PDF
-                </button>
             </div>
         `,
         narrativeTemplate: `
@@ -295,54 +291,33 @@ readiness: {
         calculate: function() {
             let dasi = 0; 
             document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
-            
-            // METs Formula: (DASI score * 0.43 + 9.6) / 3.5
             let mets = ((0.43 * dasi) + 9.6) / 3.5;
-            
             let sb = 0; 
             document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-            // 1. Identify Standalone Clinical Modifiers (Including Explicit BMI)
             let modifiers = [];
             if (document.getElementById('p-smoke')?.checked) modifiers.push("Current Smoker/Vaper");
             if (document.getElementById('p-diab')?.checked) modifiers.push("Diabetes (HbA1c > 64)");
             if (document.getElementById('p-thin')?.checked) modifiers.push("On Blood Thinners");
-            
-            // Standalone BMI reporting even though it's in STOP-BANG
             const bmiHigh = document.getElementById('in-bmi')?.checked;
             if (bmiHigh) modifiers.push("Elevated BMI (> 35)");
             
-            let modString = modifiers.length > 0 
-                ? " Identified Clinical Factors: " + modifiers.join(", ") + "." 
-                : " No additional clinical modifiers identified.";
+            let modString = modifiers.length > 0 ? " Identified Clinical Factors: " + modifiers.join(", ") + "." : " No additional clinical modifiers identified.";
 
-            // 2. Determine Red-Zone Status
             const isHighRisk = (mets < 4 || sb >= 5 || bmiHigh);
             const statusColor = isHighRisk ? "#ef4444" : "#10b981";
             const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
 
-            // 3. Update UI Elements
+            // Update UI
             document.getElementById('initial-message').style.display = 'none';
             document.getElementById('web-narrative-display').style.display = 'block';
-            
-            const statusCard = document.getElementById('status-card');
-            statusCard.style.borderColor = statusColor;
-
-            const adviceBox = document.getElementById('out-advice');
-            adviceBox.innerHTML = `<span style="color:${statusColor}; font-weight:800;">[${statusLabel}]</span> ` + 
-                (isHighRisk ? "Metrics indicate variables statistically associated with complex perioperative pathways." : "Profile aligns statistically with standard baseline risk thresholds.");
-
-            const metsDisplay = document.getElementById('out-mets');
-            metsDisplay.innerText = mets.toFixed(1);
-            metsDisplay.style.color = (mets < 4) ? "#ef4444" : "var(--brand-cyan)";
-
-            const sbDisplay = document.getElementById('out-sb');
-            sbDisplay.innerText = sb + "/8";
-            sbDisplay.style.color = (sb >= 5) ? "#ef4444" : "var(--brand-cyan)";
-
+            document.getElementById('status-card').style.borderColor = statusColor;
+            document.getElementById('out-advice').innerHTML = `<span style="color:${statusColor}; font-weight:800;">[${statusLabel}]</span> Profile aligns with ${isHighRisk ? 'complex' : 'standard'} perioperative pathways.`;
+            document.getElementById('out-mets').innerText = mets.toFixed(1);
+            document.getElementById('out-sb').innerText = sb + "/8";
             document.getElementById('out-pillars').innerHTML = "<strong>Clinical Context:</strong><br>" + modString;
 
-            // 4. Return Data to Clinical Stack for Consent Bridge
+            // EVERYTHING STAYS INSIDE THE CALCULATE FUNCTION
             return { 
                 synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.${modString}`,
                 rawData: { 
@@ -352,8 +327,9 @@ readiness: {
                     type: 'readiness' 
                 }
             }; 
-        }
-    },
+        } // This brace ends the function
+    }, // This brace ends the readiness object
+    
   recovery: {
         category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
         title: "Predictive Recovery Passport", subtitle: "Procedure-Specific Trajectories",
