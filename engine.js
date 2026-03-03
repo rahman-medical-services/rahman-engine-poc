@@ -381,6 +381,43 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
+function renderConsentThumbnail(id, item) {
+    const ctx = document.getElementById(id).getContext('2d');
+    const type = item.raw?.type;
+
+    let chartConfig = {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: true, beginAtZero: true } } }
+    };
+
+    if (type === 'readiness') {
+        // Bar Chart: METs vs Threshold
+        chartConfig.type = 'bar';
+        chartConfig.data = {
+            labels: ['Patient', 'Threshold'],
+            datasets: [{
+                data: [item.raw.mets, 4.0],
+                backgroundColor: [item.raw.isHighRisk ? '#ef4444' : '#10b981', '#94a3b8']
+            }]
+        };
+    } else if (type === 'recovery' || type === 'evidence') {
+        // Trajectory / Trial Curves: Reuse existing model data
+        // Note: This requires the original primaryData to be saved in the stack
+        chartConfig.data = {
+            labels: [1, 2, 3, 4, 5],
+            datasets: [{
+                data: item.raw.chartPoints || [], // You'll need to save primaryData to the stack in trials.js
+                borderColor: 'var(--brand-navy)',
+                tension: 0.3,
+                fill: false
+            }]
+        };
+    }
+
+    new Chart(ctx, chartConfig);
+}
+
 // --- APP INITIALISATION ---
 window.onload = function() {
     initializeSidebar();
