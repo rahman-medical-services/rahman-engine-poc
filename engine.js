@@ -1,47 +1,56 @@
 /* ==========================================================================
- * OutcomeLogic™ Universal Clinical Engine v4.3 (V2.0 Commercial Build)
- * Decoupled Refactor
+ * OutcomeLogic™ Universal Clinical Engine v4.6
+ * Integrated Build: Qualtrics API, Dashboard UI, & Digital Consent Suite
+ * Status: Multi-Screen & Resolution Optimized
  * ========================================================================== */
 
 let currentChart = null;
+let signatureDrawing = false;
+let sigCtx = null;
 
 // --- GLOBAL SESSION STATE ---
 // Bridge for passing calculator data to the future Consent UI
 window.PatientSession = {
     procedureID: "",
     calculatorResult: "",
+    rawModelData: null, // Critical: Bridges specific metrics to Consent Table
     lastUpdate: null
 };
 
 const GLOBAL_DISCLAIMER = `
     <div class="pdf-disclaimer">
-        <strong>Medical Evidence Note:</strong> This document is for educational and administrative synthesis purposes only. It visualises published research data by applying clinical modifiers to baseline cohorts. It does not constitute a personalised clinical prediction, diagnostic tool, or substitute for formal medical advice. <br>
+        <strong>Medical Evidence Note:</strong> This document is for educational and administrative synthesis purposes only. 
+        It visualises published research data by applying clinical modifiers to baseline cohorts. 
+        It does not constitute a personalised clinical prediction, diagnostic tool, or substitute for formal medical advice. <br>
         &copy; 2026 Rahman Medical Services Limited. All Rights Reserved.
     </div>
 `;
 
 // --- TRIGGER PDF EXPORT ---
-// Delegates to the isolated export-handler.js
+// Delegates to the isolated export-handler.js with fallback
 async function triggerExport(filename, btnElement) {
     if (typeof window.executePDFExport === 'function') {
         try {
             await window.executePDFExport(filename, btnElement);
         } catch (err) {
             console.error("PDF Export Bridge Error:", err);
-            alert("The PDF generator hit a snag. The app is still working; please try again.");
+            alert("The PDF generator hit a snag. Please try again.");
         }
     } else {
-        console.error("export-handler.js is not loaded.");
-        alert("The PDF export module is currently unavailable.");
+        console.warn("External export-handler not found. Defaulting to Native Print.");
+        window.print();
     }
 }
 
 // --- QUALTRICS API BRIDGE ---
+// Synchronizes URL parameters from patient surveys to UI inputs
 function loadDataFromQualtrics() {
     const urlParams = new URLSearchParams(window.location.search);
     const modelTarget = urlParams.get('model');
+    
     if (modelTarget && TRIAL_DATA[modelTarget]) {
         loadWidget(modelTarget, null);
+        
         urlParams.forEach((value, key) => {
             if (key !== 'model') {
                 const inputElement = document.getElementById(key);
@@ -60,13 +69,19 @@ function loadDataFromQualtrics() {
 
 function exportToQualtrics(summaryText) {
     if (!summaryText) return;
-    window.parent.postMessage({ type: 'OUTCOME_LOGIC_RESULT', summaryText: summaryText }, '*');
+    // Transmits synthesis back to parent Qualtrics window for record keeping
+    window.parent.postMessage({ 
+        type: 'OUTCOME_LOGIC_RESULT', 
+        summaryText: summaryText 
+    }, '*');
 }
 
-// --- EXECUTIVE DASHBOARD ---
+// --- EXECUTIVE DASHBOARD (Welcome Screen) ---
+// Restores the high-fidelity branding from v4.3
 function renderWelcomeScreen() {
     const mount = document.getElementById('content-mount');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    
     mount.innerHTML = `
         <div style="padding: 40px 20px; max-width: 900px; margin: 0 auto; animation: fadeIn 0.5s ease-in;">
             <div style="border-bottom: 3px solid var(--brand-navy); padding-bottom: 20px; margin-bottom: 30px;">
@@ -74,22 +89,28 @@ function renderWelcomeScreen() {
                 <h2 style="color: #64748b; font-size: 1.4rem; font-weight: 400; margin-top: 0;">Evidence-Driven Clinical Decision Intelligence</h2>
                 <p style="font-size: 1.15rem; color: #334155; line-height: 1.6; max-width: 700px; margin-top: 15px;">Transform patient questionnaire data into actionable triage profiles and optimized surgical pathways.</p>
             </div>
+            
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; margin-bottom: 40px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 25px;">
                     <h3 style="margin: 0; color: var(--brand-navy); font-size: 1.3rem;">Projected Pathway Impact</h3>
-                    <span style="background: #fef08a; color: #854d0e; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Demonstration Simulation</span>
+                    <span style="background: #fef08a; color: #854d0e; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Simulation Active</span>
                 </div>
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
                     <div style="background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #10b981;">
                         <div style="font-size: 2.2rem; font-weight: 800; color: #0f172a; line-height: 1;">90<span style="font-size: 1.2rem;">%</span></div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Triage Time Reduction</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Triage Efficiency</div>
                     </div>
                     <div style="background: white; padding: 20px; border-radius: 8px; border-left: 5px solid #3b82f6;">
                         <div style="font-size: 2.2rem; font-weight: 800; color: #0f172a; line-height: 1;">32<span style="font-size: 1.2rem;">%</span></div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Conservative Allocation</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #334155;">Deflection Potential</div>
                     </div>
                 </div>
             </div>
+            
+            <button class="nav-btn active" style="width:100%; height:50px; background:var(--brand-cyan); font-size:1.1rem;" onclick="renderConsentForm()">
+                Initialize Digital Consent Module
+            </button>
         </div>
     `;
 }
@@ -99,34 +120,48 @@ function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('mobile-overlay');
     sidebar.classList.toggle('open');
-    overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    if (overlay) overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
 }
 
 function initializeSidebar() {
     const nav = document.getElementById('sidebar-nav');
     if (!nav) return;
     nav.innerHTML = ''; 
+
+    // 1. Unified Consent Access
+    const consentBtn = document.createElement('button');
+    consentBtn.className = 'nav-btn active';
+    consentBtn.style.margin = '10px 20px 20px 20px';
+    consentBtn.style.background = 'var(--brand-cyan)';
+    consentBtn.innerText = 'Digital Consent Form';
+    consentBtn.onclick = renderConsentForm;
+    nav.appendChild(consentBtn);
+
+    // 2. Dynamic Categories with Accordion Logic
     const categories = [...new Set(Object.values(TRIAL_DATA).map(t => t.category))];
     categories.forEach((cat, index) => {
         const details = document.createElement('details');
         details.className = 'nav-category';
         if (index === 0) details.open = true; 
+        
         const summary = document.createElement('summary');
         summary.className = 'nav-label';
         summary.innerText = cat;
         details.appendChild(summary);
+        
         const content = document.createElement('div');
         content.className = 'category-content';
+        
         Object.keys(TRIAL_DATA).forEach(key => {
-            const trial = TRIAL_DATA[key];
-            if (trial.category === cat) {
+            if (TRIAL_DATA[key].category === cat) {
                 const btn = document.createElement('button');
                 btn.className = 'nav-btn';
-                btn.innerText = trial.shortName;
+                btn.innerText = TRIAL_DATA[key].shortName;
                 btn.onclick = (e) => loadWidget(key, e);
                 content.appendChild(btn);
             }
         });
+        
         details.appendChild(content);
         nav.appendChild(details);
     });
@@ -135,170 +170,198 @@ function initializeSidebar() {
 function loadWidget(type, event) {
     const trial = TRIAL_DATA[type];
     const mount = document.getElementById('content-mount');
+    
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if (event) event.target.classList.add('active');
 
+    // Handle Mobile Auto-Close
     if (window.innerWidth <= 900) {
         const sidebar = document.getElementById('sidebar');
-        if (sidebar.classList.contains('open')) toggleSidebar();
+        if (sidebar && sidebar.classList.contains('open')) toggleSidebar();
     }
-
-    if (trial.type === "passport") {
-        mount.innerHTML = `
-            <div class="widget-container" id="printable-area">
-                <div class="header-flex"><h2 style="margin:0; color:var(--brand-navy);">${trial.title}</h2><span class="source-tag">${trial.source}</span></div>
-                <p class="subtitle">${trial.subtitle}</p>
-                <div class="grid">
-                    <div id="controls-panel" class="ee-sidebar">${trial.controlsHTML}</div>
-                    <div id="passport-display-area">
-                        ${trial.narrativeTemplate}
-                        <div id="initial-message" style="text-align:center; padding:50px; color:#64748b; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
-                            <h3>Assessment Pending</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="governance-box">${trial.footer_note}</div>
-                ${GLOBAL_DISCLAIMER}
-            </div>
-        `;
-    } else {
-        mount.innerHTML = `
-            <div class="widget-container" id="printable-area">
-                <div class="header-flex"><h2 style="margin:0; color:var(--brand-navy);">${trial.title}</h2><span class="source-tag">${trial.source}</span></div>
-                <p class="subtitle">${trial.subtitle}</p>
-                <div class="grid">
-                    <div id="controls-panel" class="ee-sidebar">
-                        ${trial.controlsHTML}
-                        <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('${trial.shortName}', this)">Download Evidence PDF</button>
-                    </div>
-                    <div>
-                        <div class="chart-box" id="chart-mount"><canvas id="mainChart"></canvas></div>
-                        <div id="dynamic-output-box" style="display:none; margin-top: 25px; padding: 15px; border-radius: 6px; background: #f4f9fc;"></div>
-                    </div>
-                </div>
-                <div class="governance-box">${trial.footer_note}</div>
-                ${GLOBAL_DISCLAIMER}
-            </div>
-        `;
-        runCalculation(type);
-    }
-}
-
-function runCalculation(type) {
-    const trial = TRIAL_DATA[type];
-    if (!trial || typeof trial.calculate !== 'function') return;
-    const results = trial.calculate();
-    if (results) {
-        // Update Session for Consent Form
-        window.PatientSession.procedureID = type;
-        window.PatientSession.calculatorResult = results.synthesisText || "";
-        window.PatientSession.lastUpdate = new Date().toISOString();
-
-        const outputBox = document.getElementById('dynamic-output-box');
-        if (results.outputHTML) {
-            outputBox.innerHTML = results.outputHTML;
-            outputBox.style.display = 'block';
-        }
-        const chartMount = document.getElementById('chart-mount');
-        if (results.primaryData) {
-            if (chartMount) chartMount.style.display = 'block';
-            renderChart('mainChart', results, trial.color, trial.xAxisLabels);
-        } else {
-            if (chartMount) chartMount.style.display = 'none';
-        }
-        if (results.synthesisText) exportToQualtrics(results.synthesisText);
-    }
-}
-
-/**
- * RENDER CONSENT FORM
- * Pulls the latest clinical synthesis into a legal consent framework
- */
-function renderConsentForm() {
-    const mount = document.getElementById('content-mount');
-    const session = window.PatientSession;
-
-    // Check if we have data to show
-    const riskSummary = session.calculatorResult || 
-        "<span style='color:red;'>No clinical assessment data found. Please run a calculator first.</span>";
 
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
             <div class="header-flex">
-                <h2 style="margin:0; color:var(--brand-navy);">Digital Consent & Risk Acknowledgement</h2>
-                <span class="source-tag">v2.0 Legal Template</span>
+                <h2 style="margin:0; color:var(--brand-navy);">${trial.title}</h2>
+                <span class="source-tag">${trial.source}</span>
             </div>
-            <p class="subtitle">Patient-Specific Risk Synthesis for ${session.procedureID || 'Selected Procedure'}</p>
+            <p class="subtitle">${trial.subtitle}</p>
             
-            <div style="margin-top:20px; border: 1px solid #cbd5e1; border-radius:12px; overflow:hidden;">
-                <div style="background:var(--brand-navy); color:white; padding:20px;">
-                    <h3 style="margin:0; font-size:1rem; color:var(--brand-cyan);">Clinician's Risk Synthesis</h3>
-                    <p style="margin-top:10px; font-size:1.1rem; line-height:1.5;">${riskSummary}</p>
+            <div class="grid">
+                <div id="controls-panel" class="ee-sidebar no-print">
+                    ${trial.controlsHTML}
+                    ${trial.type !== 'passport' ? `<button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('${trial.shortName}', this)">Download Evidence PDF</button>` : ''}
                 </div>
-
-                <div style="padding:30px; background:white;" class="prose">
-                    <h4 style="margin-top:0;">Patient Declaration</h4>
-                    <p style="font-size:0.95rem; color:var(--text-main);">
-                        I confirm that I have discussed the risks and benefits of the proposed procedure with my clinical team. 
-                        Specifically, I acknowledge the personalized risk factors identified above.
-                    </p>
-                    
-                    <div style="margin-top:30px; border-top: 1px dashed #cbd5e1; pt-20">
-                        <label class="nav-label" style="display:block; margin-bottom:10px;">Patient Signature (or authorized representative)</label>
-                        <div style="height:100px; border:2px solid #f1f5f9; border-radius:8px; background:#fcfcfc; display:flex; align-items:center; justify-content:center; color:#cbd5e1;">
-                            [Signature Area - Digital Pad Placeholder]
-                        </div>
+                <div id="display-area">
+                    ${trial.type === 'passport' ? trial.narrativeTemplate : '<div class="chart-box" id="chart-mount"><canvas id="mainChart"></canvas></div>'}
+                    <div id="initial-message" style="text-align:center; padding:50px; color:#94a3b8; background:#f8fafc; border-radius:12px; border:1px dashed #cbd5e1;">
+                        Assessment Pending - Reviewing Trial Data...
                     </div>
+                    <div id="dynamic-output-box" style="display:none; margin-top: 25px; padding: 15px; border-radius: 6px; background: #f4f9fc;"></div>
                 </div>
             </div>
-
-            <div style="margin-top:30px; display:flex; gap:15px;" class="no-print">
-                <button class="nav-btn active" style="flex:1; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Patient-Consent', this)">
-                    Finalize & Print Consent PDF
-                </button>
-                <button class="nav-btn" style="flex:1; text-align:center;" onclick="renderWelcomeScreen()">
-                    Cancel
-                </button>
-            </div>
-
-            <div class="governance-box">
-                This document is a digital representation of the formal consent process. 
-                Timestamp: ${session.lastUpdate || 'No active session'}
-            </div>
-            <div class="pdf-disclaimer">
-                &copy; 2026 Rahman Medical Services Limited. This is a legally sensitive document.
-            </div>
+            <div class="governance-box">${trial.footer_note}</div>
+            ${GLOBAL_DISCLAIMER}
         </div>
     `;
+    
+    if (trial.type !== "passport") runCalculation(type);
 }
 
+function runCalculation(type) {
+    const trial = TRIAL_DATA[type];
+    const results = trial.calculate();
+    
+    if (results) {
+        // Sync Global Session
+        window.PatientSession.procedureID = trial.shortName;
+        window.PatientSession.calculatorResult = results.synthesisText || "";
+        window.PatientSession.lastUpdate = new Date().toLocaleString();
+
+        const outputBox = document.getElementById('dynamic-output-box');
+        if (outputBox && results.outputHTML) {
+            outputBox.innerHTML = results.outputHTML;
+            outputBox.style.display = 'block';
+        }
+
+        const initialMsg = document.getElementById('initial-message');
+        if (initialMsg) initialMsg.style.display = 'none';
+
+        if (results.primaryData) {
+            renderChart('mainChart', results, trial.color, trial.xAxisLabels);
+        }
+
+        if (results.synthesisText) exportToQualtrics(results.synthesisText);
+    }
+}
+
+// --- DIGITAL CONSENT MODULE ---
+function renderConsentForm() {
+    const mount = document.getElementById('content-mount');
+    const session = window.PatientSession;
+    const data = session.rawModelData || { mets: "--", sb: "--", isHighRisk: false };
+
+    mount.innerHTML = `
+        <div class="widget-container" id="printable-area">
+            <h2 style="color:var(--brand-navy); margin:0;">Digital Consent & Risk Acknowledgement</h2>
+            <p class="subtitle">Personalised Pathway for ${session.procedureID || 'Selected Pathway'}</p>
+
+            <table style="width:100%; border-collapse: collapse; margin: 25px 0;">
+                <thead>
+                    <tr style="background: var(--brand-navy); color: white;">
+                        <th style="padding: 12px; text-align: left; border-radius: 8px 0 0 0;">Assessment Metric</th>
+                        <th style="padding: 12px; text-align: left;">Reference Baseline</th>
+                        <th style="padding: 12px; text-align: left; border-radius: 0 8px 0 0;">Your Profile</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight:600;">Functional Capacity (METs)</td>
+                        <td style="padding: 12px;">> 4.0</td>
+                        <td style="padding: 12px; font-weight:800; color:${data.mets < 4 ? '#ef4444' : '#10b981'}">${data.mets}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; font-weight:600;">Airway Score (STOP-BANG)</td>
+                        <td style="padding: 12px;">< 3 / 8</td>
+                        <td style="padding: 12px; font-weight:800; color:${data.sb >= 5 ? '#ef4444' : '#10b981'}">${data.sb}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="background:#f8fafc; padding:25px; border-radius:12px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
+                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Evidence Synthesis:</h3>
+                <p style="margin:0; line-height:1.6;">${session.calculatorResult || 'Assessment required to generate risk data.'}</p>
+            </div>
+
+            <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
+                <label class="nav-label">Patient Acknowledgement Signature</label>
+                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:150px; margin-top:15px; position:relative; border-radius:8px;">
+                    <canvas id="sig-canvas" style="width:100%; height:100%; cursor:crosshair;"></canvas>
+                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:5px 10px; font-size:0.7rem;">Clear</button>
+                </div>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">By signing, I confirm I have reviewed the clinical metrics and discussed them with my team.</p>
+            </div>
+
+            <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
+                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Confirm & Print Consent PDF</button>
+                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Return to Dashboard</button>
+            </div>
+            
+            <div class="governance-box" style="margin-top:30px;">System Timestamp: ${session.lastUpdate || 'Session Initialised'}</div>
+            ${GLOBAL_DISCLAIMER}
+        </div>
+    `;
+    initSignaturePad();
+}
+
+// --- SIGNATURE PAD LOGIC ---
+function initSignaturePad() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    sigCtx = canvas.getContext('2d');
+    
+    // Decouple canvas size from monitor resolution
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    canvas.addEventListener('mousedown', () => signatureDrawing = true);
+    canvas.addEventListener('mouseup', () => { signatureDrawing = false; sigCtx.beginPath(); });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!signatureDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        sigCtx.lineWidth = 2.5; 
+        sigCtx.lineCap = 'round'; 
+        sigCtx.strokeStyle = '#0f172a';
+        sigCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        sigCtx.stroke();
+    });
+}
+
+function clearSignature() {
+    const canvas = document.getElementById('sig-canvas');
+    if (sigCtx && canvas) sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// --- CHARTING CORE ---
 function renderChart(id, results, color, xLabels) {
     if (currentChart) currentChart.destroy();
-    const ctx = document.getElementById(id).getContext('2d');
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     const isBar = results.chartType === 'bar';
     const safeLabels = xLabels || results.primaryData.map((_, i) => i === 0 ? 'Baseline' : '+' + i);
+    
     currentChart = new Chart(ctx, {
         type: isBar ? 'bar' : 'line',
         data: {
             labels: results.customXLabels || safeLabels,
-            datasets: [{ 
-                label: results.primaryLabel || 'Patient Scenario', 
-                data: results.primaryData, 
-                borderColor: color, 
-                backgroundColor: isBar ? color : color + '20', 
-                fill: !isBar, tension: 0.3 
-            },
-            { 
-                label: results.secondaryLabel || 'Trial Average', 
-                data: results.secondaryData, 
-                borderColor: '#cbd5e1', 
-                borderDash: [5, 5], fill: false 
-            }]
+            datasets: [
+                { 
+                    label: results.primaryLabel || 'Patient Profile', 
+                    data: results.primaryData, 
+                    borderColor: color, 
+                    backgroundColor: isBar ? color : color + '20', 
+                    fill: !isBar, tension: 0.3 
+                },
+                { 
+                    label: results.secondaryLabel || 'Standard Cohort', 
+                    data: results.secondaryData, 
+                    borderColor: '#94a3b8', 
+                    borderDash: [5, 5], fill: false 
+                }
+            ]
         },
-        options: { animation: false, maintainAspectRatio: false }
+        options: { 
+            animation: false, 
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: results.yMax || 100 } }
+        }
     });
 }
 
+// --- APP INITIALISATION ---
 window.onload = function() {
     initializeSidebar();
     loadDataFromQualtrics();
