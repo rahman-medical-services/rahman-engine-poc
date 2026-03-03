@@ -314,77 +314,83 @@ function renderChart(id, results, color, xLabels) {
 }
 
 // PDF Generation attempt
-
-// --- STABLE PORTRAIT PDF ENGINE ---
-
 async function exportToPDF(filename, btn) {
-    const element = document.getElementById('printable-area');
+    const originalElement = document.getElementById('printable-area');
     const originalText = btn ? btn.innerText : 'Download PDF';
 
-    // 1. Immediate UI Lockdown
     if (btn) {
         btn.innerText = "Processing...";
         btn.disabled = true;
     }
 
-    // 2. Prep the Chart (Capture it as an image FIRST)
-    const canvas = document.getElementById('mainChart');
-    let chartImg = null;
-    if (canvas) {
-        chartImg = new Image();
-        chartImg.src = canvas.toDataURL('image/png', 1.0);
-        chartImg.style.width = '100%';
-        chartImg.style.maxWidth = '600px';
-        chartImg.style.display = 'block';
-        chartImg.style.margin = '0 auto';
-    }
-
-    // 3. Save Original Styles
-    const originalStyle = element.getAttribute('style') || '';
-    const grid = element.querySelector('.grid');
-    const originalGridStyle = grid ? grid.getAttribute('style') || '' : '';
-
     try {
-        // 4. Transform UI to A4 Portrait
-        element.style.width = '794px';
-        element.style.minWidth = '794px';
-        element.style.padding = '40px';
-        element.style.background = 'white';
+        // 1. Capture Chart as Image BEFORE cloning
+        const canvas = document.getElementById('mainChart');
+        let chartDataURL = null;
+        if (canvas) {
+            chartDataURL = canvas.toDataURL('image/png', 1.0);
+        }
+
+        // 2. Create an isolated container for the PDF camera
+        const container = document.createElement('div');
+        container.id = 'pdf-render-container';
+        
+        // Hide the container from the user but keep it "visible" for the camera
+        Object.assign(container.style, {
+            position: 'absolute',
+            left: '-9999px',
+            top: '0',
+            width: '794px', // Standard A4 width
+            backgroundColor: 'white'
+        });
+
+        // 3. Clone the content into this isolated container
+        const clone = originalElement.cloneNode(true);
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
+        // 4. Format the Clone (Force Portrait Stack)
+        const grid = clone.querySelector('.grid');
         if (grid) {
-            grid.style.display = 'flex';
-            grid.style.flexDirection = 'column';
-        }
-        if (canvas && chartImg) {
-            canvas.style.display = 'none';
-            canvas.parentNode.insertBefore(chartImg, canvas);
+            grid.style.display = 'block'; // Complete override of any CSS grid
         }
 
-        // Give the browser 200ms to physically redraw the new layout
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // 5. Replace Canvas in the clone with the static image
+        const ghostCanvas = clone.querySelector('canvas');
+        if (ghostCanvas && chartDataURL) {
+            const img = new Image();
+            img.src = chartDataURL;
+            img.style.width = '100%';
+            img.style.maxWidth = '600px';
+            img.style.display = 'block';
+            img.style.margin = '20px auto';
+            ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
+        }
 
+        // 6. PDF Configuration
         const opt = {
             margin: 10,
             filename: filename + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true,
+                width: 794,
+                windowWidth: 794 // Strictly force the camera's eye to A4 width
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // 5. Generate the PDF
-        await html2pdf().set(opt).from(element).save();
+        // 7. Snap the PDF from the isolated container
+        await html2pdf().set(opt).from(container).save();
+
+        // 8. Cleanup
+        document.body.removeChild(container);
 
     } catch (err) {
         console.error("PDF Error:", err);
-        alert("Export failed. Restoring app...");
+        alert("Export failed.");
     } finally {
-        // 6. RESTORE EVERYTHING
-        element.setAttribute('style', originalStyle);
-        if (grid) grid.setAttribute('style', originalGridStyle);
-        if (canvas && chartImg) {
-            canvas.style.display = 'block';
-            chartImg.remove();
-            if (window.currentChart) window.currentChart.resize();
-        }
         if (btn) {
             btn.disabled = false;
             btn.innerText = originalText;
