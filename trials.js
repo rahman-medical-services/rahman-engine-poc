@@ -32,7 +32,6 @@ relapstone: {
                 <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L</label>
                 <label class="ee-check-group"><input type="checkbox" id="calc-ercp" onchange="runCalculation('relapstone')"> Previous ERCP?</label>
             </div>
-            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Gallstone-Triage', this)">Download Evidence PDF</button>
         `,
         calculate: function() {
             const ageMod = parseFloat(document.getElementById('calc-age')?.value) || 1;
@@ -81,9 +80,6 @@ relapstone: {
             </select>
             <label class="ee-check-group"><input type="checkbox" id="ee-heavy" onchange="runCalculation('inca')"> High Physical Load?</label>
 
-            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Hernia-Triage', this)">
-                Download Evidence PDF
-            </button>
         `,
         footer_note: "Model applies hazard ratios (HR) to baseline INCA crossover data. For reference only.",
         calculate: function() {
@@ -348,10 +344,6 @@ readiness: {
                     <div id="rec-alcohol" class="stat-main" style="font-size:1.2rem;">--</div>
                 </div>
             </div>
-            
-            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Recovery-Passport', this)">
-                Download Evidence PDF
-            </button>
         `,
         calculate: function() {
             const surg = document.getElementById('rec-surgery')?.value || 'lap_minor';
