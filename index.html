@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>OutcomeLogic™ | Clinical Evidence Platform</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --brand-navy: #0f172a;
@@ -15,7 +15,7 @@
             --text-muted: #64748b;
         }
 
-        /* --- BASE INTERFACE STYLES --- */
+        /* --- SCREEN INTERFACE STYLES --- */
         body {
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             margin: 0; background: #e2e8f0; color: var(--text-main);
@@ -41,12 +41,10 @@
             display: flex; flex-direction: column; z-index: 100;
             transition: transform 0.3s ease;
         }
-
         .sidebar-header {
             padding: 20px; background: var(--brand-navy); color: white;
             font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px; flex-shrink: 0;
         }
-
         #sidebar-nav { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; flex-grow: 1; }
         
         details.nav-category { margin-bottom: 2px; }
@@ -57,10 +55,11 @@
             background: white; transition: background 0.2s;
         }
         summary.nav-label:hover { background: var(--bg-light); }
+        summary.nav-label::-webkit-details-marker { display: none; }
         summary.nav-label::after { content: '▼'; font-size: 0.6rem; transition: transform 0.2s; color: #94a3b8; }
         details[open] summary.nav-label::after { transform: rotate(180deg); }
+        
         .category-content { display: flex; flex-direction: column; gap: 5px; padding: 5px 20px 15px 20px; }
-
         .nav-btn {
             background: var(--bg-light); border: 1px solid #e2e8f0; padding: 10px 15px;
             border-radius: 8px; text-align: left; font-weight: 600; color: var(--text-main);
@@ -69,35 +68,26 @@
         .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
         .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
         
-        .sidebar-footer {
-            padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; line-height: 1.5;
-            border-top: 1px solid #e2e8f0; background: var(--bg-light); flex-shrink: 0; text-align: center;
-        }
+        .sidebar-footer { padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; border-top: 1px solid #e2e8f0; background: var(--bg-light); text-align: center; }
 
-        /* --- COVARIATE & INPUT STYLING (The Corrected Block) --- */
+        /* --- COVARIATE / INPUT STYLING (Restored) --- */
         .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
         .ee-select { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; 
             font-family: inherit; font-weight: 600; margin-bottom: 15px; box-sizing: border-box; 
             background: white;
         }
-        .ee-check-group { 
-            display: flex; align-items: center; gap: 10px; font-size: 0.9rem; 
-            font-weight: 500; margin-bottom: 10px; cursor: pointer; 
-        }
+        .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
 
-        /* --- MAIN CONTENT & WIDGETS --- */
+        /* --- MAIN CONTENT & GRID --- */
         #main-content { flex: 1; padding: 30px; overflow-y: auto; width: 100%; box-sizing: border-box; }
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
         }
-        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; flex-wrap: wrap; gap: 10px; }
-        .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
-        .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
-        .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
+        .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
         .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
 
         /* --- NATIVE PRINT ENGINE (A4 Logic) --- */
@@ -105,14 +95,14 @@
             body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button { display: none !important; }
             body { background: white !important; display: block !important; overflow: visible !important; height: auto !important; }
             #main-content { padding: 0 !important; margin: 0 !important; }
-            .widget-container { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; }
+            .widget-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; margin: 0 !important; }
             .grid { display: block !important; }
             .ee-sidebar { background: transparent !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; }
-            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; }
+            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; color: black; }
             .chart-box { width: 100% !important; height: 450px !important; page-break-inside: avoid; }
         }
 
-        /* --- RESPONSIVENESS --- */
+        /* --- MOBILE SCREEN ADAPTATION --- */
         @media (max-width: 900px) {
             body { flex-direction: column; }
             #mobile-header { display: flex; }
