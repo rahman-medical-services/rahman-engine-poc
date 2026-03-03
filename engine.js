@@ -239,7 +239,7 @@ function runCalculation(type) {
 // --- DIGITAL CONSENT MODULE ---
 /**
  * UNIVERSAL DIGITAL CONSENT RENDERER
- * Detects session data and builds a legal framework for patient signature
+ * Dynamically switches layouts based on the clinical session data
  */
 function renderConsentForm() {
     const mount = document.getElementById('content-mount');
@@ -247,10 +247,9 @@ function renderConsentForm() {
     const data = session.rawModelData;
 
     // 1. DYNAMIC METRIC DETECTOR
-    // Builds different tables based on whether we have readiness data or trial probabilities
     let metricHTML = "";
     if (data && data.mets) {
-        // Mode: Readiness Assessment Table
+        // Layout: Multi-Metric Risk Table (Readiness Assessment)
         metricHTML = `
             <table style="width:100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9rem; border: 1px solid #e2e8f0;">
                 <tr style="background: var(--brand-navy); color: white;">
@@ -270,50 +269,54 @@ function renderConsentForm() {
                 </tr>
             </table>`;
     } else if (data && data.mainMetric) {
-        // Mode: Trial Evidence (RELAPSTONE/INCA)
+        // Layout: Single Probability Widget (RELAPSTONE, INCA, etc.)
         metricHTML = `
-            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0; text-align: center;">
+            <div style="background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 20px 0; text-align: center;">
                 <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted);">${data.label}</div>
-                <div style="font-size: 2.5rem; font-weight: 800; color: var(--brand-navy); margin: 5px 0;">${data.mainMetric}</div>
-                <div style="font-size: 0.85rem; color: #64748b;">Statistically modeled based on selected clinical profile.</div>
+                <div style="font-size: 2.8rem; font-weight: 800; color: var(--brand-navy); margin: 5px 0;">${data.mainMetric}</div>
+                <div style="font-size: 0.85rem; color: #64748b;">Statistically synthesized evidence for the proposed pathway.</div>
             </div>`;
     } else {
-        metricHTML = `<div style="padding:20px; color:#ef4444; font-weight:bold; text-align:center; border:2px dashed #fecdd3; border-radius:12px; margin:20px 0;">No Clinical Assessment Data Found. Please run a calculator before generating consent.</div>`;
+        // Error State: No session data detected
+        metricHTML = `<div style="padding:30px; color:#ef4444; font-weight:bold; text-align:center; border:2px dashed #fecdd3; border-radius:12px; margin:20px 0;">No Clinical Assessment Data Found. <br>Please run a calculator before generating consent.</div>`;
     }
 
-    // 2. PAINT THE LEGAL FRAMEWORK
+    // 2. PAINT THE LEGAL ACKNOWLEDGEMENT FRAMEWORK
     mount.innerHTML = `
         <div class="widget-container" id="printable-area">
-            <h2 style="color:var(--brand-navy); margin:0;">Digital Consent & Risk Acknowledgement</h2>
-            <p class="subtitle">Integration of Evidence for ${session.procedureID || 'Selected Pathway'}</p>
+            <div class="header-flex">
+                <h2 style="color:var(--brand-navy); margin:0;">Digital Consent & Risk Acknowledgement</h2>
+                <span class="source-tag">v2.1 Regulatory Build</span>
+            </div>
+            <p class="subtitle">Evidence-Driven Agreement for ${session.procedureID || 'Selected Clinical Pathway'}</p>
 
             ${metricHTML}
 
-            <div style="background:#f1f5f9; padding:20px; border-radius:8px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
-                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Clinical Synthesis:</h3>
-                <p style="margin:0; line-height:1.6; font-size:1rem;">${session.calculatorResult || '---'}</p>
+            <div style="background:#f1f5f9; padding:25px; border-radius:12px; border-left:6px solid var(--brand-navy); margin-bottom:30px;">
+                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--brand-navy);">Clinician's Evidence Synthesis:</h3>
+                <p style="margin:0; line-height:1.6; font-size:1.05rem;">${session.calculatorResult || '---'}</p>
             </div>
 
             <div style="border: 2px solid var(--brand-navy); padding:25px; border-radius:12px; background:white;">
                 <label class="nav-label" style="display:block; margin-bottom:10px;">Patient Acknowledgement Signature</label>
-                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:150px; position:relative; border-radius:8px; cursor:crosshair;">
+                <div id="sig-wrapper" style="background:#fff; border:1px dashed #cbd5e1; height:160px; position:relative; border-radius:8px; cursor:crosshair;">
                     <canvas id="sig-canvas" style="width:100%; height:100%; touch-action:none;"></canvas>
-                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:5px 10px; font-size:0.7rem; background:#eee; border:1px solid #ccc; cursor:pointer;">Clear</button>
+                    <button class="no-print" onclick="clearSignature()" style="position:absolute; bottom:10px; right:10px; padding:6px 12px; font-size:0.75rem; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; font-weight:700;">Clear Signature</button>
                 </div>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:10px;">I confirm that I have reviewed the clinical metrics identified above and have discussed the risks/benefits of the proposed pathway with the clinical team.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:12px;">By signing, I confirm I have reviewed the specific metrics identified above and have discussed the risks and benefits of the proposed pathway with my surgical team.</p>
             </div>
 
             <div class="no-print" style="margin-top:40px; display:flex; gap:15px;">
-                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy);" onclick="window.print()">Confirm & Print Consent PDF</button>
-                <button class="nav-btn" style="flex:1;" onclick="renderWelcomeScreen()">Cancel</button>
+                <button class="nav-btn active" style="flex:2; height:55px; background:var(--brand-navy); font-size:1rem;" onclick="window.print()">Confirm & Print Consent PDF</button>
+                <button class="nav-btn" style="flex:1; height:55px;" onclick="renderWelcomeScreen()">Cancel</button>
             </div>
             
-            <div class="governance-box">System Timestamp: ${session.lastUpdate || 'Session Start'}</div>
+            <div class="governance-box">Clinical Timestamp: ${session.lastUpdate || 'Session Initialised'}</div>
             ${GLOBAL_DISCLAIMER}
         </div>
     `;
     
-    // Re-initialize the canvas logic for the new element
+    // 4. RE-INITIALISE INTERACTION
     initSignaturePad();
 }
 
