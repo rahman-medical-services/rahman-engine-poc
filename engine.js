@@ -314,108 +314,77 @@ function renderChart(id, results, color, xLabels) {
 }
 
 // --- BULLETPROOF PDF EXPORT ENGINE (TRUE A4 PORTRAIT) ---
-
 async function exportToPDF(filename) {
-    const element = document.getElementById('printable-area');
-    const btn = window.event ? window.event.target : document.querySelector('button.active'); 
-    const originalText = btn ? btn.innerText : 'Download Evidence PDF';
-    
-    // 1. UI Feedback & Preparation
+    const originalElement = document.getElementById('printable-area');
+    const btn = window.event ? window.event.target : null;
+    const originalText = btn ? btn.innerText : 'Download PDF';
+
     if (btn) {
-        btn.innerText = "Processing Document...";
+        btn.innerText = "Generating PDF...";
         btn.disabled = true;
-        btn.style.display = 'none'; // Hide button from the printout
     }
-    window.scrollTo(0, 0);
 
-    // 2. Unlock the Viewport (Fixes the right-side cut-off)
-    // This allows the PDF engine to capture elements that extend beyond your physical screen
-    const origBodyOverflow = document.body.style.overflow;
-    const origHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = 'visible';
-    document.documentElement.style.overflow = 'visible';
+    // 1. Create the "Ghost Clone"
+    const ghost = originalElement.cloneNode(true);
+    
+    // 2. Style the Ghost for A4 (Off-screen)
+    Object.assign(ghost.style, {
+        position: 'absolute',
+        left: '-10000px',
+        top: '0',
+        width: '794px',
+        backgroundColor: 'white',
+        zIndex: '-1'
+    });
+    document.body.appendChild(ghost);
 
-    // 3. Save original layout styles
-    const origWidth = element.style.width;
-    const origMaxWidth = element.style.maxWidth;
-    const origMinWidth = element.style.minWidth;
-    const origMargin = element.style.margin;
-
-    // 4. Force exact A4 Portrait pixel dimensions (794px wide)
-    element.style.width = '794px';
-    element.style.minWidth = '794px';
-    element.style.maxWidth = '794px';
-    element.style.margin = '0'; // Push to top-left to guarantee camera alignment
-
-    // 5. Force the internal grid into a vertical Portrait stack
-    const grid = element.querySelector('.grid');
-    let origGridDisplay = '';
-    let origGridDirection = '';
+    // 3. Force Vertical Stacking in the Ghost
+    const grid = ghost.querySelector('.grid');
     if (grid) {
-        origGridDisplay = grid.style.display;
-        origGridDirection = grid.style.flexDirection;
         grid.style.display = 'flex';
         grid.style.flexDirection = 'column';
+        grid.style.gap = '20px';
     }
 
-    // 6. Tell Chart.js to recalculate its size for the new A4 layout
-    if (currentChart) {
-        currentChart.resize();
+    // 4. Snap the Chart as a Static Image
+    const originalCanvas = originalElement.querySelector('canvas');
+    const ghostCanvasPlace = ghost.querySelector('canvas');
+    
+    if (originalCanvas && ghostCanvasPlace) {
+        const chartImg = new Image();
+        chartImg.src = originalCanvas.toDataURL('image/png', 1.0);
+        chartImg.style.width = '100%';
+        chartImg.style.maxWidth = '650px';
+        chartImg.style.display = 'block';
+        chartImg.style.margin = '0 auto';
+        
+        ghostCanvasPlace.parentNode.replaceChild(chartImg, ghostCanvasPlace);
     }
 
-    // Pause for 150ms to let the browser physically repaint the screen
-    await new Promise(r => setTimeout(r, 150));
-
-    // 7. PDF Engine Configuration
+    // 5. PDF Settings
     const opt = {
-        margin: 10, 
-        filename: filename + '-Evidence.pdf',
+        margin: 10,
+        filename: filename + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
-            scale: 2, // Standard high-res scale, prevents mobile memory blowouts
+            scale: 2, 
             useCORS: true,
-            windowWidth: 794 // Tells the camera exactly how wide the frame is
+            width: 794 // Ensures the 'camera' captures the full width of the ghost
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    
-    try { 
-        await html2pdf().set(opt).from(element).save(); 
-    } 
-    catch (err) { 
+
+    try {
+        await html2pdf().set(opt).from(ghost).save();
+    } catch (err) {
         console.error("PDF Export Error:", err);
-        alert("Failed to export the document. Please check console."); 
-    } 
-    finally { 
-        // 8. Restore the Layout
-        element.style.width = origWidth;
-        element.style.minWidth = origMinWidth;
-        element.style.maxWidth = origMaxWidth;
-        element.style.margin = origMargin;
-
-        if (grid) {
-            grid.style.display = origGridDisplay;
-            grid.style.flexDirection = origGridDirection;
-        }
-
-        document.body.style.overflow = origBodyOverflow;
-        document.documentElement.style.overflow = origHtmlOverflow;
-
+    } finally {
+        // 6. Cleanup
+        document.body.removeChild(ghost);
         if (btn) {
-            btn.style.display = 'block';
-            btn.innerText = originalText; 
-            btn.disabled = false; 
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
-
-        // 9. The Chart Spillover Fix
-        // Let the DOM fully return to its normal responsive state, 
-        // THEN tell Chart.js to snap back to fit the box.
-        setTimeout(() => {
-            if (currentChart) {
-                currentChart.resize();
-                currentChart.update('none'); // Update silently without animation
-            }
-        }, 100);
     }
 }
 
