@@ -227,18 +227,19 @@ function loadWidget(type, event) {
 
 function runCalculation(type) {
     const trial = TRIAL_DATA[type];
-    const results = trial.calculate();
+    const results = trial.calculate(); // The model now returns everything needed
     
     if (results) {
         window.PatientSession.lastUpdate = new Date().toLocaleString();
         
         // 1. Capture the finding into the stack
+        // We use results.raw to ensure we only save data from THIS specific model
         const existingIndex = window.PatientSession.stack.findIndex(i => i.id === type);
         const entry = {
             id: type,
             shortName: trial.shortName,
             synthesis: results.synthesisText,
-            raw: JSON.parse(JSON.stringify(window.PatientSession.rawModelData || {}))
+            raw: results.rawData || {} // Use the raw data returned BY the calculation
         };
 
         if (existingIndex > -1) window.PatientSession.stack[existingIndex] = entry;
@@ -246,14 +247,15 @@ function runCalculation(type) {
 
         // 2. Standard UI updates
         const out = document.getElementById('dynamic-output-box');
-        if (out && results.outputHTML) { out.innerHTML = results.outputHTML; out.style.display = 'block'; }
+        if (out && results.outputHTML) { 
+            out.innerHTML = results.outputHTML; 
+            out.style.display = 'block'; 
+        }
         const msg = document.getElementById('initial-message');
         if (msg) msg.style.display = 'none';
         if (results.primaryData) renderChart('mainChart', results, trial.color, trial.xAxisLabels);
-        if (results.synthesisText) exportToQualtrics(results.synthesisText);
     }
 }
-
 // --- DIGITAL CONSENT MODULE ---
 /**
  * UNIVERSAL DIGITAL CONSENT RENDERER
