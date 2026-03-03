@@ -39,12 +39,13 @@ window.executePDFExport = async function(filename, btnElement) {
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
-                // Explicitly defining these prevents the library from 
-                // guessing (which is where the 't.width' error lives)
+                // These four lines are the fix for the desktop "zoom/clip"
                 width: 794,
-                windowWidth: isMobile ? 794 : 1024, 
+                windowWidth: 794,
                 scrollX: 0,
-                scrollY: 0
+                scrollY: 0,
+                x: 0,
+                y: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
