@@ -35,7 +35,7 @@
             background: rgba(0,0,0,0.5); z-index: 90;
         }
 
-        /* --- SIDEBAR & NAVIGATION (Restored) --- */
+        /* --- SIDEBAR (Accordion & Category Styles) --- */
         #sidebar {
             width: 300px; background: white; border-right: 1px solid #cbd5e1;
             display: flex; flex-direction: column; z-index: 100;
@@ -70,12 +70,12 @@
         
         .sidebar-footer { padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; border-top: 1px solid #e2e8f0; background: var(--bg-light); text-align: center; }
 
-        /* --- COVARIATE / INPUT STYLING (Restored) --- */
+        /* --- COVARIATE / INPUT STYLING (The Professional Standard) --- */
         .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
         .ee-select { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; 
             font-family: inherit; font-weight: 600; margin-bottom: 15px; box-sizing: border-box; 
-            background: white;
+            background: white; color: var(--text-main);
         }
         .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
 
@@ -85,30 +85,42 @@
             background: white; border-radius: 16px; padding: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
         }
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; flex-wrap: wrap; gap: 10px; }
+        .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
+        
+        .evidence-card { background: var(--bg-light); padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
         .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+        .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
         .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
 
         /* --- NATIVE PRINT ENGINE (A4 Logic) --- */
         @media print {
-            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button { display: none !important; }
+            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button, .no-print { display: none !important; }
             body { background: white !important; display: block !important; overflow: visible !important; height: auto !important; }
-            #main-content { padding: 0 !important; margin: 0 !important; }
+            #main-content { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
             .widget-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; margin: 0 !important; }
             .grid { display: block !important; }
-            .ee-sidebar { background: transparent !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; }
-            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; color: black; }
+            .ee-sidebar { margin-bottom: 20px !important; background: transparent !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; }
+            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; color: black !important; }
             .chart-box { width: 100% !important; height: 450px !important; page-break-inside: avoid; }
+            canvas { max-width: 100% !important; height: auto !important; }
+            .stat-main { color: black !important; }
         }
 
         /* --- MOBILE SCREEN ADAPTATION --- */
         @media (max-width: 900px) {
             body { flex-direction: column; }
             #mobile-header { display: flex; }
-            #sidebar { position: fixed; transform: translateX(-100%); height: 100vh; }
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); height: 100vh; }
             #sidebar.open { transform: translateX(0); }
-            .grid { grid-template-columns: 1fr; }
+            .sidebar-header { display: none; }
+            #main-content { padding: 15px; }
+            .widget-container { padding: 20px; }
+            .grid { grid-template-columns: 1fr; gap: 20px; }
         }
     </style>
 </head>
@@ -117,15 +129,19 @@
         <div style="font-weight: 800;">OutcomeLogic™</div>
         <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
     </div>
+    
     <div id="mobile-overlay" onclick="toggleSidebar()"></div>
+
     <div id="sidebar">
         <div class="sidebar-header">OutcomeLogic™</div>
-        <div id="sidebar-nav"></div>
+        <div id="sidebar-nav">
+            </div>
         <div class="sidebar-footer">
             <strong>v4.3 Clinical Build</strong><br>
             &copy; 2026 Rahman Medical Services Limited.
         </div>
     </div>
+
     <div id="main-content">
         <div id="content-mount">
             <div style="text-align: center; color: #64748b; margin-top: 20vh;">
@@ -134,8 +150,19 @@
             </div>
         </div>
     </div>
+
     <script src="trials.js"></script>
     <script src="export-handler.js"></script>
     <script src="engine.js"></script>
+
+    <script>
+        // Inline helper for mobile sidebar toggle
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const ov = document.getElementById('mobile-overlay');
+            sb.classList.toggle('open');
+            ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html>
