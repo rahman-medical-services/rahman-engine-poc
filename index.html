@@ -15,7 +15,7 @@
             --text-muted: #64748b;
         }
 
-        /* --- SCREEN STYLES (What you see now) --- */
+        /* --- SCREEN STYLES (App Interface) --- */
         body {
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             margin: 0; background: #e2e8f0; color: var(--text-main);
@@ -58,10 +58,10 @@
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
 
-        /* --- NATIVE PRINT ENGINE (The Fix for Wide Screens) --- */
+        /* --- NATIVE PRINT ENGINE (A4 Logic) --- */
         @media print {
             /* 1. Hide every UI element except the clinical report */
-            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn {
+            body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button {
                 display: none !important;
             }
 
@@ -85,23 +85,25 @@
                 padding: 0 !important;
                 width: 100% !important;
                 max-width: 100% !important;
+                margin: 0 !important;
             }
 
-            /* 3. Force vertical stacking (No more side-by-side grids) */
+            /* 3. Force vertical stacking (Ignore wide-screen monitor) */
             .grid {
                 display: block !important;
             }
 
             .ee-sidebar {
                 margin-bottom: 20px !important;
-                background: transparent !important;
-                border-bottom: 2px solid #eee !important;
+                background: #f8fafc !important; /* Keep light background for visibility */
+                -webkit-print-color-adjust: exact;
+                border-bottom: 1px solid #eee !important;
             }
 
-            /* 4. Chart integrity: Prevent the half-page cut */
+            /* 4. Chart integrity: Prevent truncation */
             .chart-box {
                 width: 100% !important;
-                height: 450px !important; /* Fixed height for A4 framing */
+                height: 450px !important;
                 page-break-inside: avoid;
             }
 
@@ -110,9 +112,9 @@
                 height: auto !important;
             }
 
-            /* 5. Clean text for medical documents */
+            /* 5. Clean text for clinical documentation */
             .stat-main { color: black !important; }
-            .pdf-disclaimer { border-top: 1px solid #000 !important; }
+            .pdf-disclaimer { border-top: 1px solid #eee !important; margin-top: 20px; }
         }
 
         /* Mobile specific Screen CSS */
