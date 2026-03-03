@@ -1,6 +1,6 @@
 /**
- * OutcomeLogic™ Export Handler - FIX 1.7
- * Strategy: Universal A4 Portrait Force (Mobile & Desktop)
+ * OutcomeLogic™ Export Handler - FIX 1.8
+ * Strategy: Multi-Screen Resolution Decoupling
  */
 
 window.executePDFExport = async function(filename, btnElement) {
@@ -23,8 +23,8 @@ window.executePDFExport = async function(filename, btnElement) {
             chartDataURL = canvas.toDataURL('image/png', 1.0);
         }
 
-        // 3. UNIVERSAL A4 CONFIGURATION
-        // We ignore the actual device and force a 794px "Virtual Window"
+        // 3. VIRTUAL VIEWPORT FORCING (The Fix for Wide Screens)
+        // We tell the engine to ignore the monitor and use a 794px A4 canvas
         const opt = {
             margin: [10, 10, 10, 10],
             filename: filename + '.pdf',
@@ -32,28 +32,31 @@ window.executePDFExport = async function(filename, btnElement) {
             html2canvas: { 
                 scale: 2, 
                 useCORS: true,
+                // These 4 lines prevent multi-screen resolution bugs
                 width: 794,
-                windowWidth: 794, // Forces desktop to 'shrink' to A4 width
-                scrollY: 0,
+                windowWidth: 794, 
                 scrollX: 0,
+                scrollY: 0,
                 onclone: (clonedDoc) => {
                     const clonedElement = clonedDoc.getElementById('printable-area');
                     if (!clonedElement) return;
 
-                    // Force the A4 Portrait Layout in the clone
+                    // Force A4 Styles in the virtual document
                     Object.assign(clonedElement.style, {
                         width: '794px',
                         padding: '40px',
                         background: 'white',
-                        display: 'block'
+                        display: 'block',
+                        position: 'static'
                     });
 
-                    // Force the grid to stack vertically (just like mobile)
+                    // Force the vertical mobile-style stack for the PDF
                     const grid = clonedElement.querySelector('.grid');
                     if (grid) {
                         grid.style.display = 'flex';
                         grid.style.flexDirection = 'column';
                         grid.style.gap = '30px';
+                        grid.style.width = '100%';
                     }
 
                     // Inject the static chart image
