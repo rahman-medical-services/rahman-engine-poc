@@ -210,6 +210,68 @@ function runCalculation(type) {
     }
 }
 
+/**
+ * RENDER CONSENT FORM
+ * Pulls the latest clinical synthesis into a legal consent framework
+ */
+function renderConsentForm() {
+    const mount = document.getElementById('content-mount');
+    const session = window.PatientSession;
+
+    // Check if we have data to show
+    const riskSummary = session.calculatorResult || 
+        "<span style='color:red;'>No clinical assessment data found. Please run a calculator first.</span>";
+
+    mount.innerHTML = `
+        <div class="widget-container" id="printable-area">
+            <div class="header-flex">
+                <h2 style="margin:0; color:var(--brand-navy);">Digital Consent & Risk Acknowledgement</h2>
+                <span class="source-tag">v2.0 Legal Template</span>
+            </div>
+            <p class="subtitle">Patient-Specific Risk Synthesis for ${session.procedureID || 'Selected Procedure'}</p>
+            
+            <div style="margin-top:20px; border: 1px solid #cbd5e1; border-radius:12px; overflow:hidden;">
+                <div style="background:var(--brand-navy); color:white; padding:20px;">
+                    <h3 style="margin:0; font-size:1rem; color:var(--brand-cyan);">Clinician's Risk Synthesis</h3>
+                    <p style="margin-top:10px; font-size:1.1rem; line-height:1.5;">${riskSummary}</p>
+                </div>
+
+                <div style="padding:30px; background:white;" class="prose">
+                    <h4 style="margin-top:0;">Patient Declaration</h4>
+                    <p style="font-size:0.95rem; color:var(--text-main);">
+                        I confirm that I have discussed the risks and benefits of the proposed procedure with my clinical team. 
+                        Specifically, I acknowledge the personalized risk factors identified above.
+                    </p>
+                    
+                    <div style="margin-top:30px; border-top: 1px dashed #cbd5e1; pt-20">
+                        <label class="nav-label" style="display:block; margin-bottom:10px;">Patient Signature (or authorized representative)</label>
+                        <div style="height:100px; border:2px solid #f1f5f9; border-radius:8px; background:#fcfcfc; display:flex; align-items:center; justify-content:center; color:#cbd5e1;">
+                            [Signature Area - Digital Pad Placeholder]
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:30px; display:flex; gap:15px;" class="no-print">
+                <button class="nav-btn active" style="flex:1; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Patient-Consent', this)">
+                    Finalize & Print Consent PDF
+                </button>
+                <button class="nav-btn" style="flex:1; text-align:center;" onclick="renderWelcomeScreen()">
+                    Cancel
+                </button>
+            </div>
+
+            <div class="governance-box">
+                This document is a digital representation of the formal consent process. 
+                Timestamp: ${session.lastUpdate || 'No active session'}
+            </div>
+            <div class="pdf-disclaimer">
+                &copy; 2026 Rahman Medical Services Limited. This is a legally sensitive document.
+            </div>
+        </div>
+    `;
+}
+
 function renderChart(id, results, color, xLabels) {
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById(id).getContext('2d');
