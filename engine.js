@@ -313,52 +313,78 @@ function renderChart(id, results, color, xLabels) {
     });
 }
 
-// --- PDF GENERATION ENGINE ---
+// --- BULLETPROOF PDF EXPORT ENGINE (PORTRAIT EDITION) ---
 
 async function exportToPDF(filename) {
     const element = document.getElementById('printable-area');
     const btn = event.target;
     const originalText = btn.innerText;
     
-    // 1. UI Feedback & Hide Button
-    btn.innerText = "Generating...";
+    // 1. UI Feedback & Preparation
+    btn.innerText = "Processing...";
     btn.disabled = true;
-    btn.style.display = 'none'; // Hides button from the PDF
-    
-    // Scroll to top to ensure clean capture baseline
+    btn.style.display = 'none'; // Hide button from the printout
     window.scrollTo(0, 0);
 
-    // 2. Safely store ONLY the specific styles we are about to change
-    const origWidth = element.style.width;
-    const origMaxWidth = element.style.maxWidth;
-    const origMargin = element.style.margin;
-    
-    // 3. Force desktop width temporarily for the camera
-    element.style.width = '1100px';
-    element.style.maxWidth = '1100px';
-    element.style.margin = '0';
+    // 2. The Chart.js "Freeze" Trick
+    // We swap the live chart for a static image so it doesn't explode during capture
+    const canvas = document.getElementById('mainChart');
+    let tempImg = null;
+    if (canvas) {
+        tempImg = new Image();
+        tempImg.src = canvas.toDataURL('image/png', 1.0); // High-res capture
+        tempImg.style.width = '100%';
+        tempImg.style.maxWidth = '500px'; // Restrict width for neat portrait view
+        tempImg.style.height = 'auto';
+        tempImg.style.margin = '0 auto';
+        tempImg.style.display = 'block';
+        
+        canvas.style.display = 'none'; // Hide live chart
+        canvas.parentNode.insertBefore(tempImg, canvas);
+    }
 
-    // 4. Clean, standard PDF configuration
+    // 3. Force Portrait Dimensions & Vertical Stacking
+    const origCSS = element.style.cssText;
+    element.style.cssText = 'width: 800px; max-width: 800px; margin: 0 auto; padding: 20px; background: white;';
+    
+    // Temporarily force the grid to stack vertically for A4 Portrait
+    const grid = element.querySelector('.grid');
+    let origGridCSS = '';
+    if (grid) {
+        origGridCSS = grid.style.cssText;
+        grid.style.cssText = 'display: flex; flex-direction: column; gap: 20px;';
+    }
+
+    // 4. High-Res Portrait Configuration
     const opt = {
-        margin: 10, 
-        filename: filename + '-Evidence-Summary.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
+        margin: 15, // Slightly larger margin for a professional look
+        filename: filename + '-Evidence.pdf',
+        image: { type: 'jpeg', quality: 1.0 }, // Maxed out quality
+        html2canvas: { 
+            scale: 3, // Bumped from 2 to 3 to fix the "low res" complaint
+            useCORS: true, 
+            windowWidth: 800 // The magic trick: forces mobile to render like desktop
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } // Switched to Portrait
     };
     
     try { 
         await html2pdf().set(opt).from(element).save(); 
     } 
     catch (err) { 
-        console.error("PDF Generation Error:", err);
-        alert("Failed to generate PDF. Please check console for details."); 
+        console.error("PDF Export Error:", err);
+        alert("Failed to export the document. Check console."); 
     } 
     finally { 
-        // 5. Instantly restore the UI back to normal
-        element.style.width = origWidth;
-        element.style.maxWidth = origMaxWidth;
-        element.style.margin = origMargin;
+        // 5. The Thaw: Instantly restore the UI
+        element.style.cssText = origCSS;
+        if (grid) grid.style.cssText = origGridCSS;
+        
+        if (canvas && tempImg) {
+            tempImg.parentNode.removeChild(tempImg); // Remove static image
+            canvas.style.display = 'block'; // Bring live chart back
+            if (currentChart) currentChart.resize(); // Force chart to fit box again
+        }
         
         btn.style.display = 'block';
         btn.innerText = originalText; 
