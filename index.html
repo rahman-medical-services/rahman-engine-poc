@@ -28,7 +28,14 @@
             padding: 15px 20px; align-items: center; justify-content: space-between;
             z-index: 50; flex-shrink: 0;
         }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        
+        #mobile-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 90;
+        }
 
+        /* --- SIDEBAR (Restored High-End Aesthetics) --- */
         #sidebar {
             width: 300px; background: white; border-right: 1px solid #cbd5e1;
             display: flex; flex-direction: column; z-index: 100;
@@ -37,93 +44,81 @@
 
         .sidebar-header {
             padding: 20px; background: var(--brand-navy); color: white;
-            font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px;
+            font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px; flex-shrink: 0;
         }
 
         #sidebar-nav { padding: 10px 0; display: flex; flex-direction: column; overflow-y: auto; flex-grow: 1; }
+        
+        /* Accordion / Category Styles */
+        details.nav-category { margin-bottom: 2px; }
+        summary.nav-label {
+            font-size: 0.75rem; text-transform: uppercase; font-weight: 800;
+            color: var(--text-muted); padding: 12px 20px; cursor: pointer;
+            list-style: none; display: flex; justify-content: space-between; align-items: center;
+            background: white; transition: background 0.2s;
+        }
+        summary.nav-label:hover { background: var(--bg-light); }
+        summary.nav-label::-webkit-details-marker { display: none; }
+        summary.nav-label::after { content: '▼'; font-size: 0.6rem; transition: transform 0.2s; color: #94a3b8; }
+        details[open] summary.nav-label::after { transform: rotate(180deg); }
+        
+        .category-content { display: flex; flex-direction: column; gap: 5px; padding: 5px 20px 15px 20px; }
 
         .nav-btn {
             background: var(--bg-light); border: 1px solid #e2e8f0; padding: 10px 15px;
-            border-radius: 8px; text-align: left; font-weight: 600; margin: 5px 20px;
+            border-radius: 8px; text-align: left; font-weight: 600; color: var(--text-main);
             cursor: pointer; transition: 0.2s;
         }
+        .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
+        .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
+        
+        .sidebar-footer {
+            padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; line-height: 1.5;
+            border-top: 1px solid #e2e8f0; background: var(--bg-light); flex-shrink: 0; text-align: center;
+        }
 
+        /* --- MAIN CONTENT AREA --- */
         #main-content { flex: 1; padding: 30px; overflow-y: auto; width: 100%; box-sizing: border-box; }
         
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;
         }
-
+        
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; flex-wrap: wrap; gap: 10px; }
+        .source-tag { background: #f1f5f9; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0; margin-bottom: 25px; }
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
+        
+        .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
+        .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
+        .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
 
         /* --- NATIVE PRINT ENGINE (A4 Logic) --- */
         @media print {
-            /* 1. Hide every UI element except the clinical report */
             body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button {
                 display: none !important;
             }
-
-            /* 2. Reset layout to standard A4 page */
-            body {
-                background: white !important;
-                display: block !important;
-                overflow: visible !important;
-                height: auto !important;
-            }
-
-            #main-content {
-                padding: 0 !important;
-                margin: 0 !important;
-                overflow: visible !important;
-            }
-
-            .widget-container {
-                box-shadow: none !important;
-                border: none !important;
-                padding: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-            }
-
-            /* 3. Force vertical stacking (Ignore wide-screen monitor) */
-            .grid {
-                display: block !important;
-            }
-
-            .ee-sidebar {
-                margin-bottom: 20px !important;
-                background: #f8fafc !important; /* Keep light background for visibility */
-                -webkit-print-color-adjust: exact;
-                border-bottom: 1px solid #eee !important;
-            }
-
-            /* 4. Chart integrity: Prevent truncation */
-            .chart-box {
-                width: 100% !important;
-                height: 450px !important;
-                page-break-inside: avoid;
-            }
-
-            canvas {
-                max-width: 100% !important;
-                height: auto !important;
-            }
-
-            /* 5. Clean text for clinical documentation */
-            .stat-main { color: black !important; }
-            .pdf-disclaimer { border-top: 1px solid #eee !important; margin-top: 20px; }
+            body { background: white !important; display: block !important; overflow: visible !important; height: auto !important; }
+            #main-content { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+            .widget-container { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+            .grid { display: block !important; }
+            .ee-sidebar { margin-bottom: 20px !important; background: transparent !important; border-bottom: 1px solid #eee !important; }
+            .chart-box { width: 100% !important; height: 450px !important; page-break-inside: avoid; }
+            canvas { max-width: 100% !important; height: auto !important; }
         }
 
-        /* Mobile specific Screen CSS */
+        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 900px) {
             body { flex-direction: column; }
             #mobile-header { display: flex; }
-            #sidebar { position: fixed; transform: translateX(-100%); height: 100vh; }
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); height: 100vh; }
             #sidebar.open { transform: translateX(0); }
-            .grid { grid-template-columns: 1fr; }
+            .sidebar-header { display: none; }
+            #main-content { padding: 15px; }
+            .widget-container { padding: 20px; }
+            .grid { grid-template-columns: 1fr; gap: 20px; }
         }
     </style>
 </head>
@@ -137,15 +132,21 @@
 
     <div id="sidebar">
         <div class="sidebar-header">OutcomeLogic™</div>
-        <div id="sidebar-nav"></div>
-        <div class="sidebar-footer" style="padding:20px; font-size:10px; border-top:1px solid #eee;">
+        <div id="sidebar-nav">
+            </div>
+        <div class="sidebar-footer">
+            <strong>v4.3 Clinical Build</strong><br>
             &copy; 2026 Rahman Medical Services Limited.
         </div>
     </div>
 
     <div id="main-content">
         <div id="content-mount">
+            <div style="text-align: center; color: #64748b; margin-top: 20vh;">
+                <h2>Select a clinical module to begin.</h2>
+                <p>Ensure patient data is anonymised before generating PDF summaries.</p>
             </div>
+        </div>
     </div>
 
     <script src="trials.js"></script>
