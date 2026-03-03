@@ -315,82 +315,98 @@ function renderChart(id, results, color, xLabels) {
 
 // PDF Generation attempt
 
-async function exportToPDF(filename) {
+async function exportToPDF(filename, btnElement) {
     const element = document.getElementById('printable-area');
-    const btn = window.event ? window.event.target : null;
+    // Use the passed element or fallback to the event target safely
+    const btn = btnElement || (window.event ? window.event.target : null);
     const originalText = btn ? btn.innerText : 'Download PDF';
 
-    // 1. Hide the button so it doesn't appear in the clone
+    // 1. Immediate UI Feedback
     if (btn) {
-        btn.style.display = 'none';
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+        btn.style.opacity = "0.5";
+        btn.style.cursor = "not-allowed";
     }
-    
-    // 2. Capture the high-res chart data
-    const canvas = document.getElementById('mainChart');
-    const chartDataURL = canvas ? canvas.toDataURL('image/png', 1.0) : null;
-
-    // 3. Detect if the user is on a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    const opt = {
-        margin: [10, 10, 10, 10],
-        filename: filename + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-            scale: 2, 
-            useCORS: true,
-            // Universal Fix: Only force windowWidth on mobile to prevent desktop zooming
-            width: 794,
-            windowWidth: isMobile ? 794 : undefined, 
-            onclone: (clonedDoc) => {
-                const clonedElement = clonedDoc.getElementById('printable-area');
-                
-                // Style the clone for A4 Portrait
-                Object.assign(clonedElement.style, {
-                    width: '794px',
-                    minWidth: '794px',
-                    maxWidth: '794px',
-                    padding: '20px',
-                    margin: '0',
-                    backgroundColor: 'white',
-                    overflow: 'hidden'
-                });
-
-                const grid = clonedElement.querySelector('.grid');
-                if (grid) {
-                    grid.style.display = 'flex';
-                    grid.style.flexDirection = 'column';
-                }
-
-                // Replace canvas with static high-res image
-                const ghostCanvas = clonedElement.querySelector('canvas');
-                if (ghostCanvas && chartDataURL) {
-                    const img = clonedDoc.createElement('img');
-                    img.src = chartDataURL;
-                    img.style.width = '100%';
-                    img.style.maxWidth = '600px';
-                    img.style.display = 'block';
-                    img.style.margin = '10px auto';
-                    ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
-                }
-            }
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
 
     try {
+        // 2. Capture Chart safely
+        const canvas = document.getElementById('mainChart');
+        let chartDataURL = null;
+        if (canvas) {
+            // Use a try-catch just for the canvas to prevent total failure
+            try { chartDataURL = canvas.toDataURL('image/png', 1.0); } 
+            catch (e) { console.warn("Chart capture failed, continuing without graph."); }
+        }
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: filename + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true,
+                logging: false,
+                width: 794,
+                // Only force windowWidth on mobile to fix the 'zoomed' desktop bug
+                windowWidth: isMobile ? 794 : undefined, 
+                onclone: (clonedDoc) => {
+                    const clonedElement = clonedDoc.getElementById('printable-area');
+                    if (!clonedElement) return;
+
+                    // Clean the clone for A4
+                    Object.assign(clonedElement.style, {
+                        width: '794px',
+                        minWidth: '794px',
+                        maxWidth: '794px',
+                        padding: '30px',
+                        margin: '0 auto',
+                        backgroundColor: 'white'
+                    });
+
+                    // Force vertical stacking for Portrait
+                    const grid = clonedElement.querySelector('.grid');
+                    if (grid) {
+                        grid.style.display = 'flex';
+                        grid.style.flexDirection = 'column';
+                        grid.style.gap = '20px';
+                    }
+
+                    // Replace Canvas with Image in the clone
+                    const ghostCanvas = clonedElement.querySelector('canvas');
+                    if (ghostCanvas && chartDataURL) {
+                        const img = clonedDoc.createElement('img');
+                        img.src = chartDataURL;
+                        img.style.width = '100%';
+                        img.style.maxWidth = '600px';
+                        img.style.display = 'block';
+                        img.style.margin = '10px auto';
+                        ghostCanvas.parentNode.replaceChild(img, ghostCanvas);
+                    }
+                }
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // 3. Execution
         await html2pdf().set(opt).from(element).save();
+
     } catch (err) {
-        console.error("PDF Export Error:", err);
+        console.error("PDF Export Critical Error:", err);
+        alert("Sorry, there was an error generating the PDF. The app has been reset.");
     } finally {
+        // 4. ALWAYS restore the UI, even if it fails
         if (btn) {
-            btn.style.display = 'block';
             btn.innerText = originalText;
             btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+            btn.style.display = "block";
         }
     }
 }
-
 // Ensure proper loading order and URL parameter checking
 window.onload = function() {
     initializeSidebar();
