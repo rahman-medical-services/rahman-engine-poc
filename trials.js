@@ -8,10 +8,14 @@ const TRIAL_DATA = {
     // ---------------------------------------------------------
     // 1. WAITLIST TRIAGE & DEFLECTION 
     // ---------------------------------------------------------
-    relapstone: {
-        category: "Waitlist Triage & Deflection", type: "calculated", shortName: "Gallstones (RELAPSTONE)",
-        title: "RELAPSTONE: Symptom Tracker", subtitle: "Observational Management Trajectory",
-        source: "UEG Journal (2023)", color: "#0ea5e9",
+   relapstone: {
+        category: "Waitlist Triage & Deflection", 
+        type: "calculated", 
+        shortName: "Gallstones (RELAPSTONE)",
+        title: "RELAPSTONE: Symptom Tracker", 
+        subtitle: "Observational Management Trajectory",
+        source: "UEG Journal (2023)", 
+        color: "#0ea5e9",
         xAxisLabels: ['0', '1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '10m', '11m', '12m'],
         baseline: [1.0, 0.93, 0.86, 0.79, 0.76, 0.73, 0.71, 0.69, 0.67, 0.65, 0.64, 0.635, 0.63],
         controlsHTML: `
@@ -21,6 +25,10 @@ const TRIAL_DATA = {
             </select>
             <label class="ee-check-group"><input type="checkbox" id="calc-mult" onchange="runCalculation('relapstone')"> Multiple Stones?</label>
             <label class="ee-check-group"><input type="checkbox" id="calc-alt" onchange="runCalculation('relapstone')"> ALT > 35 U/L</label>
+            
+            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Gallstone-Triage', this)">
+                Download Evidence PDF
+            </button>
         `,
         footer_note: "Statistical probability of remaining symptom-free. Not a clinical recommendation.",
         calculate: function() {
@@ -31,12 +39,19 @@ const TRIAL_DATA = {
             const hrTotal = ageMod * (multStones ? 1.19 : 1.0) * (altHigh ? 1.22 : 1.0);
             const prob12m = Math.pow(this.baseline[12], hrTotal) * 100;
 
-            const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Based on trial modeling, the statistical probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Input Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones ? 'Multiple stones' : 'Single stone'}, ${altHigh ? 'Elevated ALT' : 'Normal ALT'}.`;
+            const synth = `OUTCOMELOGIC SYNTHESIS (RELAPSTONE): Probability of remaining symptom-free at 12 months is ${prob12m.toFixed(0)}%. Profile: ${ageMod === 1.0 ? 'Under 54' : 'Over 54'}, ${multStones ? 'Multiple stones' : 'Single stone'}.`;
+
+            // MANDATORY: Bridge Data to Digital Consent Module
+            window.PatientSession.rawModelData = { 
+                mainMetric: prob12m.toFixed(0) + "%", 
+                label: "12m Symptom-Free Prob." 
+            };
 
             return {
                 primaryData: this.baseline.map(s => Math.pow(s, hrTotal) * 100),
                 secondaryData: this.baseline.map(s => s * 100),
-                primaryLabel: "Selected Patient Profile", secondaryLabel: "Standard Cohort Average",
+                primaryLabel: "Selected Patient Profile", 
+                secondaryLabel: "Standard Cohort Average",
                 labelY: "Probability of Pain-Free (%)",
                 synthesisText: synth 
             };
@@ -74,7 +89,58 @@ const TRIAL_DATA = {
             return {
                 primaryData: this.baseCrossover.map(val => (1 - Math.pow((1 - val), hr)) * 100),
                 secondaryData: this.baseCrossover.map(v => v * 100),
-                primaryLabel: "Adjusted Crossover Rate", secondaryLabel: "Baseline Trial Average",
+                primaryLabel: "Adjusted Crossover Rate", inca: {
+        category: "Waitlist Triage & Deflection", 
+        type: "calculated", 
+        shortName: "Hernia (INCA)",
+        title: "INCA Trial: 12-Year Outcomes", 
+        subtitle: "Watchful Waiting vs. Crossover Probability",
+        source: "INCA Trial (12-Year Follow-up)", 
+        color: "#142b45",
+        xAxisLabels: ['0', '1y', '2y', '3y', '4y', '5y', '6y', '7y', '8y', '9y', '10y', '11y', '12y'],
+        baseCrossover: [0, 0.12, 0.22, 0.31, 0.39, 0.46, 0.51, 0.55, 0.58, 0.61, 0.63, 0.64, 0.642],
+        controlsHTML: `
+            <label class="nav-label">Initial Symptoms</label>
+            <select id="ee-symptoms" class="ee-select" onchange="runCalculation('inca')">
+                <option value="none">Asymptomatic</option><option value="mild">Mild Discomfort</option>
+            </select>
+            <label class="nav-label">Age at Diagnosis</label>
+            <select id="ee-age" class="ee-select" onchange="runCalculation('inca')">
+                <option value="young">Under 65</option><option value="old">65 or Older</option>
+            </select>
+            <label class="ee-check-group"><input type="checkbox" id="ee-heavy" onchange="runCalculation('inca')"> High Physical Load?</label>
+
+            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="triggerExport('Hernia-Triage', this)">
+                Download Evidence PDF
+            </button>
+        `,
+        footer_note: "Model applies hazard ratios (HR) to baseline INCA crossover data. For reference only.",
+        calculate: function() {
+            const symp = document.getElementById('ee-symptoms')?.value || 'none';
+            const age = document.getElementById('ee-age')?.value || 'young';
+            const heavy = document.getElementById('ee-heavy')?.checked;
+
+            const hr = (symp === 'mild' ? 1.45 : 1.0) * (age === 'old' ? 1.25 : 1.0) * (heavy ? 1.30 : 1.0);
+            const risk12y = (1 - Math.pow((1 - 0.642), hr)) * 100;
+
+            const synth = `OUTCOMELOGIC SYNTHESIS (INCA): 12-Year surgical crossover probability is calculated at ${risk12y.toFixed(0)}%. Input Profile: ${age === 'old' ? 'Over 65' : 'Under 65'}, ${symp === 'mild' ? 'Mild Symptoms' : 'Asymptomatic'}.`;
+
+            // MANDATORY: Bridge Data to Digital Consent Module
+            window.PatientSession.rawModelData = { 
+                mainMetric: risk12y.toFixed(0) + "%", 
+                label: "12-Year Crossover Prob." 
+            };
+
+            return {
+                primaryData: this.baseCrossover.map(val => (1 - Math.pow((1 - val), hr)) * 100),
+                secondaryData: this.baseCrossover.map(v => v * 100),
+                primaryLabel: "Adjusted Crossover Rate", 
+                secondaryLabel: "Baseline Trial Average",
+                labelY: "Surgery Probability (%)",
+                synthesisText: synth 
+            };
+        }
+    },secondaryLabel: "Baseline Trial Average",
                 labelY: "Surgery Probability (%)",
                 synthesisText: synth 
             };
@@ -166,100 +232,117 @@ const TRIAL_DATA = {
     // ---------------------------------------------------------
     // 3. PERI-OPERATIVE PLANNING
     // ---------------------------------------------------------
-   readiness: {
-    category: "Peri-operative Planning", 
-    type: "passport", 
-    shortName: "Readiness Passport",
-    title: "Surgical Readiness Assessment", 
-    subtitle: "Objective Risk Metric Synthesis",
-    source: "Standardized Scoring (DASI, STOP-BANG)", 
-    color: "#6facd5",
-    controlsHTML: `
-        <div id="readiness-inputs">
-            <div class="rh-group">
-                <label class="nav-label">1. Functional Capacity (DASI)</label>
-                <label class="ee-check-group"><input type="checkbox" class="d-val" value="5.50"> Climb stairs / Walk up hill</label>
-                <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Run short distance</label>
-                <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Heavy housework (lifting)</label>
-                <label class="ee-check-group"><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming)</label>
+readiness: {
+        category: "Peri-operative Planning", 
+        type: "passport", 
+        shortName: "Readiness Passport",
+        title: "Surgical Readiness Assessment", 
+        subtitle: "Objective Risk Metric Synthesis",
+        source: "Standardized Scoring (DASI, STOP-BANG)", 
+        color: "#6facd5",
+        controlsHTML: `
+            <div id="readiness-inputs">
+                <div class="rh-group">
+                    <label class="nav-label">1. Functional Capacity (DASI)</label>
+                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="5.50"> Climb stairs / Walk up hill</label>
+                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Run short distance</label>
+                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="8.00"> Heavy housework (lifting)</label>
+                    <label class="ee-check-group"><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming)</label>
+                </div>
+                <div class="rh-group" style="margin-top:20px;">
+                    <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (P) High blood pressure?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> (B) BMI > 35?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (A) Age > 50?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (N) Neck > 16in/40cm?</label>
+                    <label class="ee-check-group"><input type="checkbox" class="s-val"> (G) Gender: Male?</label>
+                </div>
+                <div class="rh-group" style="margin-top:20px;">
+                    <label class="nav-label">3. Clinical Modifiers</label>
+                    <label class="ee-check-group"><input type="checkbox" id="p-smoke"> Current Smoker / Vaper</label>
+                    <label class="ee-check-group"><input type="checkbox" id="p-diab"> Diabetes (HbA1c > 64)</label>
+                    <label class="ee-check-group"><input type="checkbox" id="p-thin"> On Blood Thinners</label>
+                </div>
+                
+                <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="runCalculation('readiness')">
+                    Synthesize Metrics
+                </button>
+                
+                <button class="nav-btn" style="margin-top:10px; width:100%; text-align:center; border: 1px solid var(--brand-navy); color: var(--brand-navy); background: white;" onclick="triggerExport('Surgical-Readiness', this)">
+                    Download Evidence PDF
+                </button>
             </div>
-            <div class="rh-group" style="margin-top:20px;">
-                <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (P) High blood pressure?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val" id="in-bmi"> (B) BMI > 35?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (A) Age > 50?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (N) Neck > 16in/40cm?</label>
-                <label class="ee-check-group"><input type="checkbox" class="s-val"> (G) Gender: Male?</label>
+        `,
+        narrativeTemplate: `
+            <div id="web-narrative-display" style="display:none; margin-top:30px;">
+                <div id="status-card" style="background:var(--brand-navy); color:white; padding:25px; border-radius:12px; margin-bottom:20px; border-left:8px solid #cbd5e1;">
+                    <h3 style="margin-top:0; color:#6facd5;">Statistical Risk Profile</h3>
+                    <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
+                </div>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
+                    <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
+                </div>
+                <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
             </div>
-            <div class="rh-group" style="margin-top:20px;">
-                <label class="nav-label">3. Clinical Modifiers</label>
-                <label class="ee-check-group"><input type="checkbox" id="p-smoke"> Current Smoker / Vaper</label>
-                <label class="ee-check-group"><input type="checkbox" id="p-diab"> Diabetes (HbA1c > 64)</label>
-                <label class="ee-check-group"><input type="checkbox" id="p-thin"> On Blood Thinners</label>
-            </div>
-            
-            <button class="nav-btn active" style="margin-top:20px; width:100%; text-align:center; background:var(--brand-navy);" onclick="runCalculation('readiness')">
-                Synthesize Metrics
-            </button>
-            
-            <button class="nav-btn" style="margin-top:10px; width:100%; text-align:center; border: 1px solid var(--brand-navy); color: var(--brand-navy); background: white;" onclick="triggerExport('Surgical-Readiness', this)">
-                Download Evidence PDF
-            </button>
-        </div>
-    `,
-    narrativeTemplate: `
-        <div id="web-narrative-display" style="display:none; margin-top:30px;">
-            <div style="background:var(--brand-navy); color:white; padding:25px; border-radius:12px; margin-bottom:20px;">
-                <h3 style="margin-top:0; color:#6facd5;">Statistical Risk Profile</h3>
-                <p id="out-advice" style="font-size:1.1rem; line-height:1.5;"></p>
-            </div>
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
-                <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
-                <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
-            </div>
-            <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
-        </div>
-    `,
-    footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
-    calculate: function() {
-        let dasi = 0; 
-        document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
-        
-        // METs Formula: (DASI score * 0.43 + 9.6) / 3.5
-        let mets = ((0.43 * dasi) + 9.6) / 3.5;
-        let sb = 0; 
-        document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
+        `,
+        footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
+        calculate: function() {
+            let dasi = 0; 
+            document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
+            let mets = ((0.43 * dasi) + 9.6) / 3.5;
+            let sb = 0; 
+            document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-        let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
-        if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
-        if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
-        if (document.getElementById('p-thin')?.checked) pHTML += "• Active Anticoagulant Therapy.<br>";
-        if (document.getElementById('in-bmi')?.checked) pHTML += "• BMI > 35 (Associated with increased procedural complexity).<br>";
-        
-        if (pHTML === "<strong>Identified Clinical Modifiers:</strong><br>") {
-            pHTML = "No additional clinical modifiers identified from selection.";
+            // 1. Red-Zone Risk Logic
+            const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
+            const statusColor = isHighRisk ? "#ef4444" : "#10b981"; // Red vs Green
+            const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
+
+            let pHTML = "<strong>Identified Clinical Modifiers:</strong><br>";
+            if (document.getElementById('p-smoke')?.checked) pHTML += "• Active Smoking Status (Associated with altered respiratory risk).<br>";
+            if (document.getElementById('p-diab')?.checked) pHTML += "• Elevated HbA1c Status.<br>";
+            if (document.getElementById('p-thin')?.checked) pHTML += "• Active Anticoagulant Therapy.<br>";
+            if (document.getElementById('in-bmi')?.checked) pHTML += "• BMI > 35 (Associated with increased procedural complexity).<br>";
+            
+            if (pHTML === "<strong>Identified Clinical Modifiers:</strong><br>") {
+                pHTML = "No additional clinical modifiers identified from selection.";
+            }
+
+            // 2. Update UI with conditional styling
+            document.getElementById('initial-message').style.display = 'none';
+            document.getElementById('web-narrative-display').style.display = 'block';
+            
+            const statusCard = document.getElementById('status-card');
+            statusCard.style.borderColor = statusColor;
+
+            const adviceBox = document.getElementById('out-advice');
+            adviceBox.innerHTML = `<span style="color:${statusColor}; font-weight:800;">[${statusLabel}]</span> ` + 
+                (isHighRisk ? "Metrics indicate variables statistically associated with complex perioperative pathways." : "Profile aligns statistically with standard baseline risk thresholds.");
+
+            const metsDisplay = document.getElementById('out-mets');
+            metsDisplay.innerText = mets.toFixed(1);
+            metsDisplay.style.color = (mets < 4) ? "#ef4444" : "var(--brand-cyan)";
+
+            const sbDisplay = document.getElementById('out-sb');
+            sbDisplay.innerText = sb + "/8";
+            sbDisplay.style.color = (sb >= 5) ? "#ef4444" : "var(--brand-cyan)";
+
+            document.getElementById('out-pillars').innerHTML = pHTML;
+
+            // 3. Bridge Data to Digital Consent
+            window.PatientSession.rawModelData = { 
+                mets: mets.toFixed(1), 
+                sb: sb, 
+                isHighRisk: isHighRisk 
+            };
+
+            return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.` }; 
         }
-
-        // Update the UI
-        document.getElementById('initial-message').style.display = 'none';
-        document.getElementById('web-narrative-display').style.display = 'block';
-        document.getElementById('out-mets').innerText = mets.toFixed(1);
-        document.getElementById('out-sb').innerText = sb + "/8";
-        document.getElementById('out-pillars').innerHTML = pHTML;
-
-        let advice = (mets >= 4 && sb < 3 && !document.getElementById('in-bmi')?.checked) 
-            ? "Calculated profile (METs ≥ 4, STOP-BANG < 3) aligns statistically with standard baseline risk thresholds for elective procedures."
-            : "Calculated profile indicates variables (e.g., METs < 4, elevated STOP-BANG, or BMI > 35) statistically associated with complex perioperative pathways.";
-        
-        document.getElementById('out-advice').innerText = advice;
-
-        // Return synthesis for PatientSession / Qualtrics
-        return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. ${advice}` }; 
-    }
-},
+    },
 
     recovery: {
         category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
