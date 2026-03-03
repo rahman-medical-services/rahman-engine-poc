@@ -15,10 +15,8 @@
             --text-muted: #64748b;
             --risk-red: #ef4444;
         }
-        #sig-canvas {
-    touch-action: none; /* Prevents the screen from moving while signing */
-        }
-        /* --- SCREEN INTERFACE STYLES --- */
+
+        /* --- INTERFACE CORE --- */
         body {
             font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
             margin: 0; background: #e2e8f0; color: var(--text-main);
@@ -38,7 +36,7 @@
             background: rgba(0,0,0,0.5); z-index: 90;
         }
 
-        /* --- SIDEBAR (Accordion & Reset Logic) --- */
+        /* --- SIDEBAR & NAVIGATION --- */
         #sidebar {
             width: 300px; background: white; border-right: 1px solid #cbd5e1;
             display: flex; flex-direction: column; z-index: 100;
@@ -58,7 +56,6 @@
             background: white; transition: background 0.2s;
         }
         summary.nav-label:hover { background: var(--bg-light); }
-        summary.nav-label::-webkit-details-marker { display: none; }
         summary.nav-label::after { content: '▼'; font-size: 0.6rem; transition: transform 0.2s; color: #94a3b8; }
         details[open] summary.nav-label::after { transform: rotate(180deg); }
         
@@ -71,20 +68,17 @@
         .nav-btn:hover { border-color: var(--brand-cyan); background: #f0f9ff; }
         .nav-btn.active { background: var(--brand-navy); color: white; border-color: var(--brand-navy); }
         
-        /* Session Controls Styling */
-        .sidebar-controls {
-            padding: 15px 20px; border-top: 1px solid #e2e8f0; background: white;
-        }
+        /* Session Controls */
+        .sidebar-controls { padding: 15px 20px; border-top: 1px solid #e2e8f0; background: white; }
         .btn-reset { 
             width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #fecdd3;
             color: var(--risk-red); background: #fff5f5; font-weight: 700; font-size: 0.8rem;
             cursor: pointer; transition: 0.2s;
         }
         .btn-reset:hover { background: var(--risk-red); color: white; }
-
         .sidebar-footer { padding: 15px 20px; font-size: 0.65rem; color: #94a3b8; border-top: 1px solid #e2e8f0; background: var(--bg-light); text-align: center; }
 
-        /* --- COVARIATE / INPUT STYLING --- */
+        /* --- CLINICAL UI COMPONENTS --- */
         .ee-sidebar { background: #f1f5f9; padding: 20px; border-radius: 12px; }
         .ee-select { 
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; 
@@ -93,7 +87,6 @@
         }
         .ee-check-group { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 10px; cursor: pointer; }
 
-        /* --- MAIN CONTENT & GRID --- */
         #main-content { flex: 1; padding: 30px; overflow-y: auto; width: 100%; box-sizing: border-box; }
         .widget-container {
             background: white; border-radius: 16px; padding: 30px;
@@ -102,15 +95,37 @@
         .grid { display: grid; grid-template-columns: 320px 1fr; gap: 30px; }
         .chart-box { position: relative; height: 400px; width: 100%; }
         
-        /* --- NATIVE PRINT ENGINE --- */
+        .evidence-card { background: var(--bg-light); padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; text-align: center; }
+        .stat-main { font-size: 2rem; font-weight: 800; color: var(--brand-cyan); margin: 5px 0; }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+        .governance-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 0.8rem; color: var(--text-muted); }
+        .pdf-disclaimer { margin-top: 30px; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4; }
+
+        /* DIGITAL SIGNATURE SAFETY */
+        #sig-canvas {
+            touch-action: none;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        /* --- PRINT OPTIMIZATION --- */
         @media print {
             body, #sidebar, #mobile-header, #mobile-overlay, .nav-btn, .menu-btn, button, .no-print { display: none !important; }
             body { background: white !important; display: block !important; overflow: visible !important; height: auto !important; }
             #main-content { padding: 0 !important; margin: 0 !important; }
             .widget-container { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; }
             .grid { display: block !important; }
-            .ee-sidebar { background: transparent !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; }
-            .ee-select { border: none !important; padding: 0 !important; font-weight: 800 !important; -webkit-appearance: none; color: black !important; }
+        }
+
+        /* --- MOBILE ADAPTATION --- */
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            #mobile-header { display: flex; }
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; transform: translateX(-100%); height: 100vh; }
+            #sidebar.open { transform: translateX(0); }
+            #main-content { padding: 15px; }
+            .grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -128,7 +143,7 @@
         <div id="sidebar-nav">
             </div>
 
-        <div class="sidebar-controls">
+        <div class="sidebar-controls no-print">
             <button class="btn-reset" onclick="resetPatientSession()">
                 Clear Session (New Patient)
             </button>
