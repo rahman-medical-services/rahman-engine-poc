@@ -266,7 +266,7 @@ readiness: {
                     <label class="ee-check-group"><input type="checkbox" class="d-val" value="7.50"> Strenuous sports (Swimming)</label>
                 </div>
                 <div class="rh-group" style="margin-top:20px;">
-                    <label class="nav-label">2. Airway & Risk (STOP-BANG)</label>
+                    <label class="nav-label">2. Risk Stratification (STOP-BANG)</label>
                     <label class="ee-check-group"><input type="checkbox" class="s-val"> (S) Snore loudly?</label>
                     <label class="ee-check-group"><input type="checkbox" class="s-val"> (T) Tired/fatigued?</label>
                     <label class="ee-check-group"><input type="checkbox" class="s-val"> (O) Observed apnea?</label>
@@ -300,44 +300,32 @@ readiness: {
                 </div>
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
                     <div class="evidence-card"><div class="stat-label">Calculated Capacity</div><div id="out-mets" class="stat-main">--</div><div class="stat-label">METs</div></div>
-                    <div class="evidence-card"><div class="stat-label">Airway Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
+                    <div class="evidence-card"><div class="stat-label">Risk Score</div><div id="out-sb" class="stat-main">--</div><div class="stat-label">STOP-BANG</div></div>
                 </div>
                 <div id="out-pillars" style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:8px; font-size:0.9rem; line-height: 1.6;"></div>
             </div>
         `,
         footer_note: "Values aggregate patient-reported metrics into standard DASI and STOP-BANG scoring systems.",
-calculate: function() {
-    let dasi = 0; 
-    document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
-    let mets = ((0.43 * dasi) + 9.6) / 3.5;
-    let sb = 0; 
-    document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
+        calculate: function() {
+            let dasi = 0; 
+            document.querySelectorAll('.d-val:checked').forEach(i => dasi += parseFloat(i.value));
+            let mets = ((0.43 * dasi) + 9.6) / 3.5;
+            let sb = 0; 
+            document.querySelectorAll('.s-val:checked').forEach(i => sb += 1);
 
-    // Capture Clinical Modifiers for the synthesis string
-    let modifiers = [];
-    if (document.getElementById('p-smoke')?.checked) modifiers.push("Current Smoker/Vaper");
-    if (document.getElementById('p-diab')?.checked) modifiers.push("Diabetes (HbA1c > 64)");
-    if (document.getElementById('p-thin')?.checked) modifiers.push("On Blood Thinners");
-    
-    let modString = modifiers.length > 0 ? " Identified Modifiers: " + modifiers.join(", ") + "." : " No additional clinical modifiers identified.";
+            // 1. Logic & Red-Zone Checks
+            const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
+            const statusColor = isHighRisk ? "#ef4444" : "#10b981";
+            const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
 
-    const isHighRisk = (mets < 4 || sb >= 5 || document.getElementById('in-bmi')?.checked);
-    const statusLabel = isHighRisk ? "HIGH COMPLEXITY" : "STANDARD RISK";
+            // 2. Modifier Synthesis
+            let modifiers = [];
+            if (document.getElementById('p-smoke')?.checked) modifiers.push("Current Smoker/Vaper");
+            if (document.getElementById('p-diab')?.checked) modifiers.push("Diabetes (HbA1c > 64)");
+            if (document.getElementById('p-thin')?.checked) modifiers.push("On Blood Thinners");
+            let modString = modifiers.length > 0 ? " Identified Modifiers: " + modifiers.join(", ") + "." : " No additional clinical modifiers identified.";
 
-    // Update UI
-    document.getElementById('initial-message').style.display = 'none';
-    document.getElementById('web-narrative-display').style.display = 'block';
-    document.getElementById('out-mets').innerText = mets.toFixed(1);
-    document.getElementById('out-sb').innerText = sb + "/8";
-    document.getElementById('out-advice').innerText = isHighRisk ? "Calculated profile indicates variables associated with complex pathways." : "Profile aligns with standard baseline thresholds.";
-
-    // Return object including specific 'rawData' for THIS model
-    return { 
-        synthesisText: `READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.${modString}`,
-        rawData: { mets: mets.toFixed(1), sb: sb, isHighRisk: isHighRisk, type: 'readiness' }
-    }; 
-}
-            // 2. Update UI with conditional styling
+            // 3. UI Updates
             document.getElementById('initial-message').style.display = 'none';
             document.getElementById('web-narrative-display').style.display = 'block';
             
@@ -356,19 +344,20 @@ calculate: function() {
             sbDisplay.innerText = sb + "/8";
             sbDisplay.style.color = (sb >= 5) ? "#ef4444" : "var(--brand-cyan)";
 
-            document.getElementById('out-pillars').innerHTML = pHTML;
+            document.getElementById('out-pillars').innerHTML = "<strong>Clinical Context:</strong><br>" + modString;
 
-            // 3. Bridge Data to Digital Consent
-            window.PatientSession.rawModelData = { 
-                mets: mets.toFixed(1), 
-                sb: sb, 
-                isHighRisk: isHighRisk 
-            };
-
-            return { synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.` }; 
+            // 4. Multi-Model Stack Bridge
+            return { 
+                synthesisText: `OUTCOMELOGIC READINESS: METs ${mets.toFixed(1)}, STOP-BANG ${sb}/8. Profile: ${statusLabel}.${modString}`,
+                rawData: { 
+                    mets: mets.toFixed(1), 
+                    sb: sb, 
+                    isHighRisk: isHighRisk, 
+                    type: 'readiness' 
+                }
+            }; 
         }
     },
-
     recovery: {
         category: "Peri-operative Planning", type: "calculated", shortName: "Recovery Passport",
         title: "Predictive Recovery Passport", subtitle: "Procedure-Specific Trajectories",
@@ -418,11 +407,16 @@ calculate: function() {
                 document.getElementById('rec-alcohol').innerText = surg === 'lap_major' ? "Strict Avoid" : "Off Opioids";
             }
 
-        return {
+ return {
     primaryData: this.baselines[surg].map(s => Math.min(s * fit * compMod, 100)),
     secondaryData: this.baselines[surg],
     synthesisText: `RECOVERY: Est. return to driving ${driveDays} days, lifting ${liftWks} weeks.`,
-    rawData: { mainMetric: driveDays + " Days", label: "Est. Driving Return", type: 'recovery' }
+    rawData: { 
+        mainMetric: driveDays + " Days", 
+        label: "Est. Driving Return", 
+        type: 'recovery',
+        chartPoints: this.baselines[surg].map(s => Math.min(s * fit * compMod, 100)) // Added for Consent Chart
+    }
 };
         }
     },
