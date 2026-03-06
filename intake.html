@@ -176,7 +176,14 @@
                     <strong>Hernia Specifics:</strong>
                     <div class="checkbox-group"><input type="checkbox" id="hernia_enlarging"><span>Is the hernia noticeably enlarging?</span></div>
                     
-                    <div id="logic_groin_only" class="hidden" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
+<div id="logic_groin_only" class="hidden" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        
+                        <label style="margin-top: 0;">Specific Hernia Type (if known)</label>
+                        <select id="groin_type" style="margin-bottom: 15px;">
+                            <option value="inguinal">Inguinal Hernia (Most common)</option>
+                            <option value="femoral">Femoral Hernia</option>
+                            <option value="unknown">Not sure</option>
+                        </select>
                         <div class="checkbox-group"><input type="checkbox" id="groin_heavy"><span>High Physical Activity / Heavy Lifting?</span></div>
                         <div class="checkbox-group"><input type="checkbox" id="groin_bilateral"><span>Hernia is Bilateral (Both sides)?</span></div>
                         <div class="checkbox-group"><input type="checkbox" id="groin_recurrent_lap"><span>Recurrence after previous Keyhole repair?</span></div>
@@ -366,19 +373,32 @@
                     <div class="chart-container"><canvas id="choleChart"></canvas></div>
                     <p style="font-size: 11.5px; color: #777; font-style: italic; margin-top: 10px; text-align: center;">This figure represents a statistical probability derived from published cohort data and is not a personal clinical prediction.</p>
                 </div>
-
+                
                 <div id="sdm_groin_hernia" class="hidden">
                     <img src="hernia.png" class="clinical-img" alt="Groin Hernia Anatomy">
-                    <p style="font-size: 14px; color: #444; margin-bottom: 15px; line-height: 1.5;">Is "watch and wait" safe? Using long-term follow-up data, we can statistically predict the likelihood that your hernia symptoms will progress to the point of requiring surgery over the next decade.</p>
                     
-                    <div class="stat-box">
-                        <div style="font-size:12px; opacity:0.8; text-transform:uppercase;">Outcome Logic™ Predictive Engine</div>
-                        <div class="stat-number" id="groin-percentage">--%</div>
-                        <div style="font-size:14px;">Probability of eventually requiring surgery</div>
+                    <div id="inca_chart_container">
+                        <p style="font-size: 14px; color: #444; margin-bottom: 15px; line-height: 1.5;">Is "watch and wait" safe? Using long-term follow-up data, we can statistically predict the likelihood that your hernia symptoms will progress to the point of requiring surgery over the next decade.</p>
+                        
+                        <div class="stat-box">
+                            <div style="font-size:12px; opacity:0.8; text-transform:uppercase;">Outcome Logic™ Predictive Engine</div>
+                            <div class="stat-number" id="groin-percentage">--%</div>
+                            <div style="font-size:14px;">Probability of eventually requiring surgery</div>
+                        </div>
+                        <div class="chart-container"><canvas id="groinChart"></canvas></div>
+                        <p style="font-size: 11.5px; color: #777; font-style: italic; margin-top: 10px; text-align: center;">This figure represents a statistical probability derived from published cohort data and is not a personal clinical prediction.</p>
+                        
+                        <p id="inca_female_disclaimer" class="hidden" style="font-size: 12px; color: #b91c1c; background: #fee2e2; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #fca5a5;">
+                            <strong>Note for female patients:</strong> The INCA trial tracking the safety of "watchful waiting" was conducted exclusively on men. While watchful waiting may still be applicable, your anatomical risk profile varies slightly and will be discussed carefully in clinic.
+                        </p>
                     </div>
-                    <div class="chart-container"><canvas id="groinChart"></canvas></div>
-                    <p style="font-size: 11.5px; color: #777; font-style: italic; margin-top: 10px; text-align: center;">This figure represents a statistical probability derived from published cohort data and is not a personal clinical prediction.</p>
+
+                    <div id="femoral_warning_container" class="hidden" style="background: #fef2f2; border: 1px solid #fca5a5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #b91c1c; margin-top: 0;">Femoral Hernia Pathway</h4>
+                        <p style="font-size: 13.5px; color: #7f1d1d; margin-bottom: 0;">Because femoral hernias pass through a narrow anatomical space, they carry a significantly higher risk of trapping bowel (strangulation). Therefore, the "watch and wait" approach is <strong>not clinically recommended</strong> for femoral hernias. Prompt surgical repair is the standard of care.</p>
+                    </div>
                     
+                    <h3 style="margin-top:30px;">Surgical Technique Matcher</h3>
                     <h3 style="margin-top:30px;">Surgical Technique Matcher</h3>
                     <p style="font-size: 13px; color: #444; margin-bottom: 15px;">Using European Hernia Society (EHS) guidelines, we map your specific anatomy to the most appropriate repair technique to minimize pain and speed recovery.</p>
                     <div class="sub-panel" style="border-left-color: var(--brand-cyan); background: var(--brand-navy); color: white;">

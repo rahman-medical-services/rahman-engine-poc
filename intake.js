@@ -355,16 +355,20 @@ function renderEvidence() {
     if (!condEl) return;
     const val = condEl.value;
     
-    document.getElementById('sdm_lap_chole').classList.add('hidden');
-    document.getElementById('sdm_groin_hernia').classList.add('hidden');
-    document.getElementById('sdm_incisional').classList.add('hidden');
-    document.getElementById('sdm_ventral').classList.add('hidden');
-    if (activeChart) activeChart.destroy();
+    // Hide everything first to reset the view
+    if (document.getElementById('sdm_lap_chole')) document.getElementById('sdm_lap_chole').classList.add('hidden');
+    if (document.getElementById('sdm_groin_hernia')) document.getElementById('sdm_groin_hernia').classList.add('hidden');
+    if (document.getElementById('sdm_incisional')) document.getElementById('sdm_incisional').classList.add('hidden');
+    if (document.getElementById('sdm_ventral')) document.getElementById('sdm_ventral').classList.add('hidden');
+    
+    if (activeChart) {
+        activeChart.destroy();
+        activeChart = null;
+    }
 
     if (val === 'lap_chole') {
         document.getElementById('sdm_lap_chole').classList.remove('hidden');
         const time = [0,1,2,3,4,5,6,7,8,9,10,11,12];
-        // Original Base Survival probabilities
         const baseSurv = [1.0,0.93,0.86,0.79,0.76,0.73,0.71,0.69,0.67,0.65,0.64,0.635,0.63];
         let hr = 1.0;
         
@@ -380,9 +384,8 @@ function renderEvidence() {
         if (document.getElementById('chole_alt') && document.getElementById('chole_alt').checked) hr *= 1.22;
         if (document.getElementById('chole_wcc') && document.getElementById('chole_wcc').checked) hr *= 0.79;
         
-        // Inverted: Probability of Event (Hospital Admission) = 1 - (Survival^HR)
         let adjRisk = baseSurv.map(s => (1 - Math.pow(s, hr)) * 100);
-        document.getElementById('chole-percentage').innerText = adjRisk[12].toFixed(1) + "%";
+        if (document.getElementById('chole-percentage')) document.getElementById('chole-percentage').innerText = adjRisk[12].toFixed(1) + "%";
 
         activeChart = new Chart(document.getElementById('choleChart'), {
             type: 'line', data: { labels: time, datasets: [
@@ -393,29 +396,55 @@ function renderEvidence() {
     } 
     else if (val === 'groin_hernia') {
         document.getElementById('sdm_groin_hernia').classList.remove('hidden');
-        const time = [0,1,2,3,4,5,6,7,8,9,10,11,12];
-        const baseCross = [0,0.12,0.22,0.31,0.39,0.46,0.51,0.55,0.58,0.61,0.63,0.64,0.642];
-        let hr = 1.0;
         
-        const sympEl = document.getElementById('groin_symptoms');
-        const symp = sympEl ? sympEl.value : 'none';
-        if (symp === 'mild' || symp === 'severe') hr *= 1.45;
-        
-        const ageEl = document.getElementById('age');
-        if (ageEl && (parseInt(ageEl.value)||0) >= 65) hr *= 1.25;
-        
-        if (document.getElementById('groin_heavy') && document.getElementById('groin_heavy').checked) hr *= 1.30;
-        
-        let adjCross = baseCross.map(v => (1 - Math.pow(1-v, hr)) * 100);
-        document.getElementById('groin-percentage').innerText = adjCross[12].toFixed(1) + "%";
+        const gType = document.getElementById('groin_type')?.value || 'inguinal';
+        const pSex = document.getElementById('sex')?.value || 'male';
 
-        activeChart = new Chart(document.getElementById('groinChart'), {
-            type: 'line', data: { labels: time, datasets: [
-                { label: 'Study Average', data: baseCross.map(v=>v*100), borderColor: '#bbbbbb', borderDash: [5,5], tension: 0.3, fill: false },
-                { label: 'Your Profile', data: adjCross, borderColor: '#142b45', backgroundColor: 'rgba(20,43,69,0.1)', borderWidth: 4, tension: 0.3, fill: true }
-            ]}, options: { ...chartOpts, scales: { y: { title: {display:true, text:'Surgery Prob (%)'}, min:0, max:100}, x: {title: {display:true, text:'Years'}} } }
-        });
+        const incaContainer = document.getElementById('inca_chart_container');
+        const femoralWarning = document.getElementById('femoral_warning_container');
+        const femaleDisclaimer = document.getElementById('inca_female_disclaimer');
 
+        // 1. Handle Femoral vs Inguinal UI
+        if (gType === 'femoral') {
+            if (incaContainer) incaContainer.classList.add('hidden');
+            if (femoralWarning) femoralWarning.classList.remove('hidden');
+        } else {
+            if (incaContainer) incaContainer.classList.remove('hidden');
+            if (femoralWarning) femoralWarning.classList.add('hidden');
+            
+            // 2. Handle Female Disclaimer
+            if (pSex === 'female' && femaleDisclaimer) {
+                femaleDisclaimer.classList.remove('hidden');
+            } else if (femaleDisclaimer) {
+                femaleDisclaimer.classList.add('hidden');
+            }
+
+            // 3. Render INCA Chart (Only if not femoral)
+            const time = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+            const baseCross = [0,0.12,0.22,0.31,0.39,0.46,0.51,0.55,0.58,0.61,0.63,0.64,0.642];
+            let hr = 1.0;
+            
+            const sympEl = document.getElementById('groin_symptoms');
+            const symp = sympEl ? sympEl.value : 'none';
+            if (symp === 'mild' || symp === 'severe') hr *= 1.45;
+            
+            const ageEl = document.getElementById('age');
+            if (ageEl && (parseInt(ageEl.value)||0) >= 65) hr *= 1.25;
+            
+            if (document.getElementById('groin_heavy') && document.getElementById('groin_heavy').checked) hr *= 1.30;
+            
+            let adjCross = baseCross.map(v => (1 - Math.pow(1-v, hr)) * 100);
+            if(document.getElementById('groin-percentage')) document.getElementById('groin-percentage').innerText = adjCross[12].toFixed(1) + "%";
+
+            activeChart = new Chart(document.getElementById('groinChart'), {
+                type: 'line', data: { labels: time, datasets: [
+                    { label: 'Study Average', data: baseCross.map(v=>v*100), borderColor: '#bbbbbb', borderDash: [5,5], tension: 0.3, fill: false },
+                    { label: 'Your Profile', data: adjCross, borderColor: '#142b45', backgroundColor: 'rgba(20,43,69,0.1)', borderWidth: 4, tension: 0.3, fill: true }
+                ]}, options: { ...chartOpts, scales: { y: { title: {display:true, text:'Surgery Prob (%)'}, min:0, max:100}, x: {title: {display:true, text:'Years'}} } }
+            });
+        }
+
+        // 4. EHS Surgical Technique Matcher
         let tTitle = "Laparoscopic TEP/TAPP Repair";
         let tDesc = "A minimally invasive approach may be an excellent fit, typically offering fast recovery.";
         if (document.getElementById('groin_local') && document.getElementById('groin_local').checked) { tTitle = "Open Mesh Repair (Local)"; tDesc = "A safe pathway avoiding a general anaesthetic."; }
@@ -423,9 +452,10 @@ function renderEvidence() {
         else if (document.getElementById('prev_pelvic_check') && document.getElementById('prev_pelvic_check').checked) { tTitle = "Open Mesh Repair"; tDesc = "A safe option avoiding pelvic scar tissue from prior surgery."; }
         else if (document.getElementById('groin_recurrent_open') && document.getElementById('groin_recurrent_open').checked) { tTitle = "Laparoscopic Revision"; tDesc = "A change of plane avoids old anterior scar tissue."; }
         else if (document.getElementById('groin_bilateral') && document.getElementById('groin_bilateral').checked) { tTitle = "Laparoscopic TEP/TAPP"; tDesc = "Allows repair of both sides through the same tiny incisions."; }
+        else if (gType === 'femoral') { tTitle = "Laparoscopic TEP/TAPP or Open Preperitoneal Repair"; tDesc = "Femoral hernias require a specific approach to close the femoral ring. Keyhole surgery is highly effective for this."; }
         
-        document.getElementById('groin-tech-title').innerText = tTitle;
-        document.getElementById('groin-tech-desc').innerText = tDesc;
+        if (document.getElementById('groin-tech-title')) document.getElementById('groin-tech-title').innerText = tTitle;
+        if (document.getElementById('groin-tech-desc')) document.getElementById('groin-tech-desc').innerText = tDesc;
     }
     else if (val === 'incisional_hernia') {
         document.getElementById('sdm_incisional').classList.remove('hidden');
@@ -445,7 +475,7 @@ function renderEvidence() {
         
         if (document.getElementById('prev_infection_check') && document.getElementById('prev_infection_check').checked) risk += 10;
         
-        document.getElementById('cedar-percentage').innerText = risk + "%";
+        if (document.getElementById('cedar-percentage')) document.getElementById('cedar-percentage').innerText = risk + "%";
 
         activeChart = new Chart(document.getElementById('cedarChart'), {
             type: 'bar', data: { labels: ['Optimized Target', 'Your Current Risk Profile'], datasets: [{ label: 'Wound Complication Risk (%)', data: [6, risk], backgroundColor: ['#10b981', '#ef4444'], borderRadius: 4 }] },
@@ -727,10 +757,18 @@ function generateCarebitPayload(mets, sb) {
     
     const age = document.getElementById('age')?.value || 'N/A';
     const sex = document.getElementById('sex')?.value === 'male' ? 'M' : 'F';
-    const condEl = document.getElementById('condition');
-    const condition = condEl ? condEl.options[condEl.selectedIndex].text : 'N/A';
-    const bmi = document.getElementById('bmi_result')?.textContent || 'N/A';
     
+    const condEl = document.getElementById('condition');
+    let condition = condEl ? condEl.options[condEl.selectedIndex].text : 'N/A';
+    
+    // Dynamic Inguinal vs Femoral capture
+    if (condEl && condEl.value === 'groin_hernia') {
+        const gType = document.getElementById('groin_type')?.value;
+        if (gType === 'femoral') condition = 'Groin Hernia (Femoral)';
+        else if (gType === 'inguinal') condition = 'Groin Hernia (Inguinal)';
+    }
+
+    const bmi = document.getElementById('bmi_result')?.textContent || 'N/A';
     const goals = document.getElementById('priority_final')?.value || "Unclear — explore";
     const reason = document.getElementById('reason')?.value || "Routine review";
 
@@ -752,7 +790,6 @@ function generateCarebitPayload(mets, sb) {
     const pmhStr = pmhArr.length > 0 ? pmhArr.join(', ') : 'Nil significant';
     const pshStr = document.getElementById('prev_surgeries_text')?.value || 'Nil significant';
 
-    // Construct the professional shorthand string
     return `Re: ${name} | ${age}${sex} | DOB: ${dob} | ID: ${document.getElementById('patient_id')?.value || 'N/A'}
 PC: ${condition} | BMI: ${bmi}
 Cx: ${reason}
