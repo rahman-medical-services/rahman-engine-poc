@@ -983,16 +983,30 @@ async function generateFinalPDF() {
                 // FIRE WEBHOOK
                 if (typeof WEBHOOK_URL !== 'undefined') {
                     const dataPacket = {
-                        patientName: rawName.toUpperCase(),
-                        patientDOB: formattedDOB,
-                        auditID: secureAuditID, // Passes the safe cryptographic hash
-                        condition: condEl ? condEl.value : 'N/A',
-                        bmi: bmiVal ? bmiVal.toFixed(1) : "0",
-                        eq5d: eq5dProfile,
-                        timeInApp: timeInAppString,
-                        clinicalPayload: carebitPayload,
-                        pdfData: cleanBase64 
-                    };
+        patientName: rawName.toUpperCase(),
+        patientDOB: formattedDOB,
+        auditID: secureAuditID,
+        condition: condEl ? condEl.value : 'N/A',
+        referralSource: document.getElementById('referral_source')?.value || 'N/A',
+        gpPractice: document.getElementById('gp_practice')?.value || 'N/A',
+        age: document.getElementById('age')?.value || '0',
+        bmi: bmiVal ? bmiVal.toFixed(1) : "0",
+        stopBang: sb,
+        mets: mets.toFixed(1),
+        cci: cci,
+        painScore: document.getElementById('pain_score')?.value || '0',
+        qolScore: document.getElementById('qol_score')?.value || '0',
+        eq5d: eq5dProfile,
+        timeInApp: timeInAppString,
+        deviceType: typeof isMobile !== 'undefined' ? isMobile : 'Desktop',
+        compScore: document.getElementById('survey_comprehension')?.value || '0',
+        prepScore: document.getElementById('survey_prepared')?.value || '0',
+        usaScore: document.getElementById('survey_usability')?.value || '0',
+        researchConsent: document.getElementById('research_consent')?.checked ? "Yes" : "No",
+        targetDate: document.getElementById('dateInput')?.value || "", // Used for Follow-up calc
+        clinicalPayload: carebitPayload,
+        pdfData: cleanBase64 
+    };
 
                     // Send as text/plain to bypass strict browser CORS blocks on large files
                     fetch(WEBHOOK_URL, {
