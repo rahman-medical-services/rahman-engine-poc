@@ -966,13 +966,13 @@ async function generateFinalPDF() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
     };
 
-    setTimeout(async () => {
+  setTimeout(async () => {
         try { 
             const worker = html2pdf().set(opt).from(element);
             
             // Generate the physical PDF file (Blob)
             const pdfBlob = await worker.output('blob');
-            generatedPdfBlob = pdfBlob; // Saves for the 'Open' button
+            generatedPdfBlob = pdfBlob; // Saves for the 'Open' button (don't forget to declare this variable globally if needed)
 
             // Perfectly convert that exact file to Base64
             const reader = new FileReader();
@@ -980,55 +980,61 @@ async function generateFinalPDF() {
             reader.onloadend = async function() {
                 const cleanBase64 = reader.result.split(',')[1];
 
+                // Logic to capture only the partial postcode (Outward Code)
+                const fullPostcode = document.getElementById('gp_practice')?.value.trim().toUpperCase() || 'N/A';
+                const partialPostcode = fullPostcode.includes(' ') 
+                    ? fullPostcode.split(' ')[0] 
+                    : fullPostcode.substring(0, 4);
+
                 // FIRE WEBHOOK
                 if (typeof WEBHOOK_URL !== 'undefined') {
                     const dataPacket = {
-        patientName: rawName.toUpperCase(),
-        patientDOB: formattedDOB,
-        auditID: secureAuditID,
-        condition: condEl ? condEl.value : 'N/A',
-        referralSource: document.getElementById('referral_source')?.value || 'N/A',
-        gpPractice: document.getElementById('gp_practice')?.value || 'N/A',
-        age: document.getElementById('age')?.value || '0',
-        bmi: bmiVal ? bmiVal.toFixed(1) : "0",
-        stopBang: sb,
-        mets: mets.toFixed(1),
-        cci: cci,
-        painScore: document.getElementById('pain_score')?.value || '0',
-        qolScore: document.getElementById('qol_score')?.value || '0',
-        eq5d: eq5dProfile,
-        timeInApp: timeInAppString,
-        deviceType: typeof isMobile !== 'undefined' ? isMobile : 'Desktop',
-        compScore: document.getElementById('survey_comprehension')?.value || '0',
-        prepScore: document.getElementById('survey_prepared')?.value || '0',
-        usaScore: document.getElementById('survey_usability')?.value || '0',
-        researchConsent: document.getElementById('research_consent')?.checked ? "Yes" : "No",
-        targetDate: document.getElementById('dateInput')?.value || "", // Used for Follow-up calc
-        clinicalPayload: carebitPayload,
-        pdfData: cleanBase64 
-    };
+                        patientName: rawName.toUpperCase(),
+                        patientDOB: formattedDOB,
+                        auditID: secureAuditID,
+                        condition: condEl ? condEl.value : 'N/A',
+                        referralSource: document.getElementById('referral_source')?.value || 'N/A',
+                        gpPractice: partialPostcode, // Cleaned partial postcode
+                        age: document.getElementById('age')?.value || '0',
+                        bmi: bmiVal ? bmiVal.toFixed(1) : "0",
+                        stopBang: sb,
+                        mets: mets.toFixed(1),
+                        cci: cci,
+                        painScore: document.getElementById('pain_score')?.value || '0',
+                        qolScore: document.getElementById('qol_score')?.value || '0',
+                        eq5d: eq5dProfile,
+                        timeInApp: timeInAppString,
+                        deviceType: (typeof isMobile !== 'undefined' ? isMobile : (/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop')),
+                        compScore: document.getElementById('survey_comprehension')?.value || '0',
+                        prepScore: document.getElementById('survey_prepared')?.value || '0',
+                        usaScore: document.getElementById('survey_usability')?.value || '0',
+                        researchConsent: document.getElementById('research_consent')?.checked ? "Yes" : "No",
+                        targetDate: document.getElementById('dateInput')?.value || "", 
+                        clinicalPayload: carebitPayload,
+                        pdfData: cleanBase64 
+                    };
 
-                    // Send as text/plain to bypass strict browser CORS blocks on large files
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(dataPacket)
-                    }).catch(e => console.log("Webhook skipped"));
+                    }).catch(e => console.log("Webhook failed or skipped", e));
                 }
 
-                // SHOW SUCCESS UI (And keep the page smoothly anchored at the bottom)
+                // SHOW SUCCESS UI
                 const nsPanel = document.getElementById('next_steps_panel');
                 if(nsPanel) {
                     nsPanel.classList.remove('hidden');
                     setTimeout(() => { nsPanel.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, 100);
                 }
                 
-                if(btn) btn.innerHTML = "Profile Submitted"; 
+                if(btn) btn.innerHTML = "Profile Submitted Successfully"; 
             };
 
         } catch (err) { 
             console.error("PDF generation failed:", err);
             alert("An error occurred during final processing. Please try submitting again.");
+            if(btn) { btn.disabled = false; btn.innerText = "Try Again"; }
         } finally { 
             element.style.display = 'none'; 
         }
