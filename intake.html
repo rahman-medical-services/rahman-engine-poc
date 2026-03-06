@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Intake | Powered by Outcome Logic</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+    <link rel="stylesheet" href="patient.css">
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-header no-print">
+        <h1>Clinical Intake & Triage <span style="font-size: 11px; background: var(--brand-cyan); color: white; padding: 4px 8px; border-radius: 12px; vertical-align: middle; margin-left: 10px; font-weight: bold; letter-spacing: 0.5px;">Powered by Outcome Logic™</span></h1>
+        <p class="intro-text">
+            <strong>Thank you for booking an appointment with me.</strong> In order to provide the best quality care and focus your consultation on what matters most to you, it is important to collect some routine data about your general health and your condition before we meet.<br><br>I will use this information to generate a bespoke clinical profile for you, describing the personalized risks and benefits of proceeding with surgery. You will be able to review this evidence as you complete the form, which should take about 10 minutes. I hope you find it helpful, and I look forward to meeting you in clinic.
+        </p>
+        <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+
+    <div class="app-content no-print">
+        <form id="intakeForm">
+
+            <div class="app-step active" id="step-1">
+                <h2>1. Patient Details & Medical History</h2>
+                <p class="step-intro">Accurate background information helps us calculate your baseline health metrics and flags any immediate surgical or anaesthetic considerations.</p>
+                
+                <h3 style="margin-top: 0; color: var(--brand-navy); border-bottom: 1px solid #eee; padding-bottom: 5px;">A. Demographics & Administration</h3>
+                <div class="input-grid">
+                    <div><label>Full Name</label><input type="text" id="patient_name" placeholder="Legal name" required></div>
+                    <div><label>Date of Birth</label><input type="date" id="patient_dob" required></div>
+                </div>
+
+                <div class="input-grid">
+                    <div><label>Patient ID (If known)</label><input type="text" id="patient_id" placeholder="e.g. Carebit ID"></div>
+                    <div>
+                        <label>Calculated Age</label>
+                        <div id="age_display" style="padding: 13px; background: #e0e6ed; border-radius: 6px; font-size: 15px; border: 1px solid #ccc; color: #555;">--</div>
+                        <input type="hidden" id="age">
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label>Is English your first language?</label>
+                        <select id="english_first">
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                    <div id="language_specify_container" class="hidden">
+                        <label>Preferred Language</label>
+                        <input type="text" id="language_specify" placeholder="e.g. Urdu, Polish, BSL">
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label>How did you hear about us?</label>
+                        <select id="referral_source">
+                            <option value="" disabled selected>-- Select --</option>
+                            <option value="gp">GP Referral</option>
+                            <option value="website">Mr Rahman's Website</option>
+                            <option value="doctify">Doctify</option>
+                            <option value="iwgc">iWantGreatCare</option>
+                            <option value="self">Online Search (Google)</option>
+                            <option value="friend">Friend / Family Recommendation</option>
+                            <option value="insurer">Insurer Approved List</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>GP Practice Name / Postcode (Optional)</label>
+                        <input type="text" id="gp_practice" placeholder="e.g. West End Surgery or SO15...">
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label>Funding Route</label>
+                        <select id="funding">
+                            <option value="self_pay">Self-Paying</option>
+                            <option value="insurance">Private Medical Insurance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="insurance_nested" class="sub-panel hidden" style="margin-top: 10px; background: #f8fafc;">
+                    <div class="input-grid">
+                        <div><label style="margin-top: 0;">Insurance Provider</label><input type="text" id="ins_provider" placeholder="e.g. Bupa, AXA"></div>
+                        <div><label style="margin-top: 0;">Membership Number</label><input type="text" id="ins_member" placeholder="e.g. 12345678"></div>
+                    </div>
+                    <label>Pre-Authorization Code (if known)</label>
+                    <input type="text" id="ins_auth" placeholder="e.g. ABC-123">
+                </div>
+
+                <h3 style="color: var(--brand-navy); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px;">B. Surgical Condition</h3>
+                
+                <div class="input-grid">
+                    <div>
+                        <label>Condition for review</label>
+                        <select id="condition" required>
+                            <option value="" disabled selected>-- Select --</option>
+                            <option value="lap_chole">Gallstones / Gallbladder</option>
+                            <option value="groin_hernia">Groin Hernia (Inguinal/Femoral)</option>
+                            <option value="incisional_hernia">Incisional Hernia</option>
+                            <option value="ventral_hernia">Paraumbilical / Ventral Hernia</option>
+                            <option value="other">Other / General Abdominal Pain</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Symptom Duration</label>
+                        <select id="symptom_duration">
+                            <option value="<3m">Less than 3 months</option>
+                            <option value="3-12m">3 to 12 months</option>
+                            <option value="1-3y">1 to 3 years</option>
+                            <option value=">3y">More than 3 years</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label>Ideal timeframe for treatment?</label>
+                        <select id="timeframe">
+                            <option value="" disabled selected>-- Select --</option>
+                            <option value="asap">ASAP (Ready to proceed)</option>
+                            <option value="one_month">Within 1 month</option>
+                            <option value="three_months">Within 3 months</option>
+                            <option value="exploring">Just exploring options</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Seen another surgeon for this?</label>
+                        <select id="prior_consult">
+                            <option value="no">No</option>
+                            <option value="yes">Yes (Second Opinion)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="prior_consult_nested" class="hidden">
+                    <label>Previous Surgeon / Clinic Details</label>
+                    <input type="text" id="prior_consult_who" placeholder="Please provide brief details...">
+                </div>
+
+                <label>Specific Reason for Consultation</label>
+                <textarea id="reason" rows="2" placeholder="e.g. My GP referred me for a lump, I want a second opinion..."></textarea>
+
+                <div id="logic_chole" class="sub-panel hidden" style="background: #eef5f9; border-color: var(--brand-navy);">
+                    <strong>Gallstone Specifics:</strong>
+                    <div class="checkbox-group"><input type="checkbox" id="chole_mult"><span>Multiple gallstones present?</span></div>
+                    
+                    <label style="font-size: 13px; margin-top: 15px;">Frequency of attacks:</label>
+                    <select id="chole_freq">
+                        <option value="rare">Rarely (less than once a month)</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="weekly">Weekly or more</option>
+                    </select>
+
+                    <label style="font-size: 13px;">Main triggers (e.g., food, time of day):</label>
+                    <textarea id="chole_triggers" rows="1" placeholder="e.g. Wakes me up at night, after fatty foods..."></textarea>
+
+                    <div class="checkbox-group"><input type="checkbox" id="chole_hosp"><span>Previous hospital admission for this pain?</span></div>
+                    <div id="hosp_nested" class="sub-panel hidden" style="margin-top: 5px;">
+                        <div class="checkbox-group"><input type="checkbox" id="chole_ercp"><span>Previous ERCP / Bile duct procedure?</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="chole_alt"><span>Elevated Liver Enzymes (ALT > 35)</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="chole_wcc"><span>Elevated White Cell Count (WCC > 11)</span></div>
+                    </div>
+                </div>
+
+                <div id="logic_hernia_universal" class="sub-panel hidden" style="background: #eef5f9; border-color: var(--brand-navy);">
+                    <strong>Hernia Specifics:</strong>
+                    <div class="checkbox-group"><input type="checkbox" id="hernia_enlarging"><span>Is the hernia noticeably enlarging?</span></div>
+                    
+                    <div id="logic_groin_only" class="hidden" style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <div class="checkbox-group"><input type="checkbox" id="groin_heavy"><span>High Physical Activity / Heavy Lifting?</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="groin_bilateral"><span>Hernia is Bilateral (Both sides)?</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="groin_recurrent_lap"><span>Recurrence after previous Keyhole repair?</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="groin_recurrent_open"><span>Recurrence after previous Open repair?</span></div>
+                        <div class="checkbox-group"><input type="checkbox" id="groin_local"><span>Patient prefers Local/Spinal Anaesthetic?</span></div>
+                        <label>Symptom Level</label>
+                        <select id="groin_symptoms">
+                            <option value="none">No pain (Asymptomatic)</option>
+                            <option value="mild">Mild pain</option>
+                            <option value="severe">Moderate / Severe pain</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label>Current Patient Reported Outcomes (PROMs)</label>
+                <label style="font-weight:normal; font-size:14px;">Average Pain: <strong id="pain_val">1</strong>/10</label>
+                <input type="range" id="pain_score" min="1" max="10" value="1" style="width: 100%;">
+                
+                <label style="font-weight:normal; font-size:14px; margin-top:15px;">Quality of Life: <strong id="qol_val">10</strong>/10</label>
+                <input type="range" id="qol_score" min="1" max="10" value="10" style="width: 100%;">
+
+                <div class="sub-panel" style="margin-top: 25px; border-left-color: var(--brand-cyan);">
+                    <strong style="color: var(--brand-navy); display:block; margin-bottom:5px;">Validated Health Status (EQ-5D-3L Proxy)</strong>
+                    <p style="font-size: 12.5px; color: #555; margin-top:0; margin-bottom:15px;">Please select the statement that best describes your health today.</p>
+                    
+                    <label style="font-size:13px; font-weight:normal;">Mobility</label>
+                    <select id="eq5d_mobility" style="margin-bottom:10px;">
+                        <option value="1">I have no problems in walking about</option>
+                        <option value="2">I have some problems in walking about</option>
+                        <option value="3">I am confined to bed</option>
+                    </select>
+
+                    <label style="font-size:13px; font-weight:normal;">Self-Care</label>
+                    <select id="eq5d_selfcare" style="margin-bottom:10px;">
+                        <option value="1">I have no problems with self-care</option>
+                        <option value="2">I have some problems washing or dressing myself</option>
+                        <option value="3">I am unable to wash or dress myself</option>
+                    </select>
+
+                    <label style="font-size:13px; font-weight:normal;">Usual Activities (work, study, family/leisure)</label>
+                    <select id="eq5d_activities" style="margin-bottom:10px;">
+                        <option value="1">I have no problems performing my usual activities</option>
+                        <option value="2">I have some problems performing my usual activities</option>
+                        <option value="3">I am unable to perform my usual activities</option>
+                    </select>
+
+                    <label style="font-size:13px; font-weight:normal;">Pain / Discomfort</label>
+                    <select id="eq5d_pain" style="margin-bottom:10px;">
+                        <option value="1">I have no pain or discomfort</option>
+                        <option value="2">I have moderate pain or discomfort</option>
+                        <option value="3">I have extreme pain or discomfort</option>
+                    </select>
+
+                    <label style="font-size:13px; font-weight:normal;">Anxiety / Depression</label>
+                    <select id="eq5d_anxiety">
+                        <option value="1">I am not anxious or depressed</option>
+                        <option value="2">I am moderately anxious or depressed</option>
+                        <option value="3">I am extremely anxious or depressed</option>
+                    </select>
+                </div>
+
+
+                <h3 style="color: var(--brand-navy); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px;">C. Medical & Anaesthetic History</h3>
+
+                <div class="input-grid">
+                    <div><label>Sex at birth (For scoring)</label><select id="sex"><option value="male">Male</option><option value="female">Female</option></select></div>
+                    <div>
+                        <label>Alcohol Intake</label>
+                        <select id="alcohol_intake">
+                            <option value="none">None / Rare</option>
+                            <option value="occasional">Occasional (1-2 days/week)</option>
+                            <option value="weekly">Regular (3-5 days/week)</option>
+                            <option value="daily">Daily</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label>Height & Weight</label>
+                <div style="display: flex; gap: 15px; margin-bottom: 10px; font-size: 14px;">
+                    <label style="margin:0; font-weight:normal;"><input type="radio" name="units" value="metric" checked> Metric (cm/kg)</label>
+                    <label style="margin:0; font-weight:normal;"><input type="radio" name="units" value="imperial"> Imperial (ft/st)</label>
+                </div>
+
+                <div id="metric_inputs" class="input-grid">
+                    <div><input type="number" id="height_cm" placeholder="Height (cm)"></div>
+                    <div><input type="number" id="weight_kg" placeholder="Weight (kg)"></div>
+                </div>
+
+                <div id="imperial_inputs" class="input-grid hidden">
+                    <div style="display: flex; gap: 5px;"><input type="number" id="height_ft" placeholder="ft" style="flex:1"><input type="number" id="height_in" placeholder="in" style="flex:1"></div>
+                    <div style="display: flex; gap: 5px;"><input type="number" id="weight_st" placeholder="st" style="flex:1"><input type="number" id="weight_lbs" placeholder="lbs" style="flex:1"></div>
+                </div>
+                <div id="bmi_badge" class="badge" style="display: none; background: var(--brand-grey); color: var(--brand-navy);">BMI: <span id="bmi_result">--</span></div>
+
+                <label>Current Medications</label>
+                <textarea id="medications_text" rows="2" placeholder="List medications (Please explicitly state if you take steroids, immunosuppressants, or weight-loss injections like Ozempic/Wegovy)..."></textarea>
+
+                <label>Known Allergies</label>
+                <input type="text" id="allergies_text" placeholder="e.g. Penicillin, Latex, None known">
+
+                <label>General Comorbidities</label>
+                <div class="checkbox-group"><input type="checkbox" id="pmh_htn"> <span>Hypertension</span></div>
+                
+                <label style="font-weight: normal; margin-top: 10px; font-size: 14px; margin-bottom: 5px;">Diabetes Status</label>
+                <select id="pmh_diab_status" style="margin-bottom: 10px;">
+                    <option value="none">No Diabetes</option>
+                    <option value="controlled">Yes - Well controlled (HbA1c under 64)</option>
+                    <option value="uncontrolled">Yes - Poorly controlled (HbA1c 64 or over)</option>
+                    <option value="unknown">Yes - I don't know my HbA1c</option>
+                </select>
+
+                <div class="checkbox-group"><input type="checkbox" id="pmh_thin"> <strong style="color: var(--brand-navy);">On Anticoagulants / Blood Thinners</strong></div>
+                <div class="checkbox-group"><input type="checkbox" id="smoking"> <span>Current Smoker / Vaper</span></div>
+                <div class="checkbox-group" style="margin-top: 15px;"><input type="checkbox" id="fam_anaesthetic"> <strong style="color:#b91c1c;">Family history of severe anaesthetic problems (e.g. Malignant Hyperthermia)</strong></div>
+                
+                <button type="button" id="toggle_advanced_hx" style="font-size:13px; color:var(--brand-cyan); background:none; border:none; padding:0; text-decoration:underline; cursor:pointer; margin-top:15px; margin-bottom:5px; font-weight:bold;">+ Show Advanced Medical History</button>
+                <div id="advanced_hx_panel" class="hidden sub-panel" style="margin-top: 5px; background: #fafafa;">
+                    <p style="font-size: 12.5px; color: #666; margin-top: 0; margin-bottom: 10px;">Please tick any that apply to help us accurately assess your surgical risk.</p>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>History of Heart Attack (Myocardial Infarction)</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>Congestive Heart Failure</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>COPD or Severe Respiratory Disease</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>Stroke or TIA (Mini-stroke)</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>Chronic Kidney Disease</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="1"> <span>Liver Disease</span></div>
+                    <div class="checkbox-group"><input type="checkbox" class="cci-val" value="2"> <span>History of Cancer / Malignancy</span></div>
+                </div>
+
+                <label style="margin-top: 15px;">Other Medical History</label>
+                <textarea id="pmh_other_text" rows="2" placeholder="Please list any other medical conditions (e.g. Asthma, Thyroid issues)..."></textarea>
+
+                <label>Surgical History</label>
+                <textarea id="prev_surgeries_text" rows="2" placeholder="Please list any previous surgeries (e.g. Knee replacement 2018)..."></textarea>
+                
+                <div class="checkbox-group" style="margin-top:15px;"><input type="checkbox" id="prev_abdo_check"><span>I have had previous Abdominal Surgery</span></div>
+                <div id="surgery_nested" class="sub-panel hidden">
+                    <div class="checkbox-group"><input type="checkbox" id="prev_infection_check"><span>Experienced post-operative wound infection</span></div>
+                    <div class="checkbox-group"><input type="checkbox" id="prev_pelvic_check"><span>Procedure was pelvic (e.g. Prostatectomy)</span></div>
+                </div>
+
+                <div id="frailty_container" class="sub-panel hidden" style="border-left-color: #ea580c; background: #fffaf5; margin-top: 20px;">
+                    <strong style="color: #c2410c;">Functional Assessment (Over 65s):</strong>
+                    <div class="checkbox-group" style="align-items: flex-start; margin-top: 8px;">
+                        <input type="checkbox" id="frailty_check" style="margin-top: 2px;">
+                        <span>In the last 6 months, have you noticed a general decline in your ability to manage daily activities without assistance?</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="app-step" id="step-2">
+                <h2>2. Anaesthetic Readiness & Optimisation</h2>
+                <p class="step-intro">I often explain to patients that surgery is a physiological stress test. It is important to establish the risks of surgery to you personally, which we can do by asking the simple questions below. This gives us a good indication of your functional capacity, which helps my anaesthetic team plan the safest possible approach and highlights areas we can optimise before your operation.</p>
+
+                <label style="margin-bottom: 2px;">Functional Capacity (DASI Estimate)</label>
+                <p style="font-size: 12.5px; color: var(--brand-navy); margin-top: 0; margin-bottom: 12px; font-style: italic;">The Duke Activity Status Index (DASI) helps estimate your metabolic capacity (METs).</p>
+                <div class="checkbox-group"><input type="checkbox" class="d-val" value="5.50" checked><span>Climb a flight of stairs / walk up a hill?</span></div>
+                <div class="checkbox-group"><input type="checkbox" class="d-val" value="8.00" checked><span>Run a short distance?</span></div>
+                <div class="checkbox-group"><input type="checkbox" class="d-val" value="8.00" checked><span>Heavy housework (lifting furniture)?</span></div>
+                <div class="checkbox-group"><input type="checkbox" class="d-val" value="7.50" checked><span>Strenuous sports (swimming/singles tennis)?</span></div>
+
+                <label style="margin-top: 25px; margin-bottom: 2px;">Airway Risk (STOP-BANG Proxy)</label>
+                <p style="font-size: 12.5px; color: var(--brand-navy); margin-top: 0; margin-bottom: 12px; font-style: italic;">This screening tool identifies potential airway risks during sedation.</p>
+                <div class="checkbox-group"><input type="checkbox" id="sb_snore"><span>Snore loudly?</span></div>
+                <div class="checkbox-group"><input type="checkbox" id="sb_tired"><span>Often feel tired or fatigued during the day?</span></div>
+                <div class="checkbox-group"><input type="checkbox" id="sb_observe"><span>Observed apnea/gasping during sleep?</span></div>
+
+                <div id="readiness_badge" class="badge badge-green">
+                    <span id="readiness_result">Calculating...</span>
+                </div>
+
+                <h3 style="margin-bottom: 10px;">Optimisation Requirements</h3>
+                <div id="out-pillars" class="sub-panel" style="border-left-color: var(--brand-navy); background: var(--brand-grey); font-size: 14px; line-height: 1.6; margin-top: 0;"></div>
+            </div>
+
+            <div class="app-step" id="step-3">
+                <h2>3. Evidence & Treatment Pathway</h2>
+                <p class="step-intro">A core part of my practice is Shared Decision Making. I have personally generated these bespoke models from published clinical data as part of my private practice to help explain to you how patients with a profile like yours typically progress. This evidence is designed to help you weigh the benefits of surgery against watchful waiting, ensuring you feel fully informed before we build your treatment plan.</p>
+                
+                <div id="sdm_lap_chole" class="hidden">
+                    <img src="gallstones.png" class="clinical-img" alt="Gallstone Anatomy">
+                    <p style="font-size: 14px; color: #444; margin-bottom: 15px; line-height: 1.5;">Using data from the multicentre RELAPSTONE cohort, we estimate your personalized probability of experiencing a severe recurrent attack if you choose <em>not</em> to have surgery.</p>
+                    <div class="stat-box">
+                        <div style="font-size:12px; opacity:0.8; text-transform:uppercase;">Outcome Logic™ Predictive Engine</div>
+                        <div class="stat-number" id="chole-percentage">--%</div>
+                        <div style="font-size:14px;">Probability of severe attack requiring hospital admission</div>
+                    </div>
+                    <div class="chart-container"><canvas id="choleChart"></canvas></div>
+                    <p style="font-size: 11.5px; color: #777; font-style: italic; margin-top: 10px; text-align: center;">This figure represents a statistical probability derived from published cohort data and is not a personal clinical prediction.</p>
+                </div>
+
+                <div id="sdm_groin_hernia" class="hidden">
+                    <img src="hernia.png" class="clinical-img" alt="Groin Hernia Anatomy">
+                    <p style="font-size: 14px; color: #444; margin-bottom: 15px; line-height: 1.5;">Is "watch and wait" safe? Using long-term follow-up data, we can statistically predict the likelihood that your hernia symptoms will progress to the point of requiring surgery over the next decade.</p>
+                    
+                    <div class="stat-box">
+                        <div style="font-size:12px; opacity:0.8; text-transform:uppercase;">Outcome Logic™ Predictive Engine</div>
+                        <div class="stat-number" id="groin-percentage">--%</div>
+                        <div style="font-size:14px;">Probability of eventually requiring surgery</div>
+                    </div>
+                    <div class="chart-container"><canvas id="groinChart"></canvas></div>
+                    <p style="font-size: 11.5px; color: #777; font-style: italic; margin-top: 10px; text-align: center;">This figure represents a statistical probability derived from published cohort data and is not a personal clinical prediction.</p>
+                    
+                    <h3 style="margin-top:30px;">Surgical Technique Matcher</h3>
+                    <p style="font-size: 13px; color: #444; margin-bottom: 15px;">Using European Hernia Society (EHS) guidelines, we map your specific anatomy to the most appropriate repair technique to minimize pain and speed recovery.</p>
+                    <div class="sub-panel" style="border-left-color: var(--brand-cyan); background: var(--brand-navy); color: white;">
+                        <div style="font-size:12px; color:var(--brand-cyan); font-weight:bold; letter-spacing:1px;">POTENTIAL SURGICAL PATHWAY</div>
+                        <div id="groin-tech-title" style="font-size: 20px; font-weight: bold; margin: 5px 0;">Analysing...</div>
+                        <div id="groin-tech-desc" style="font-size: 14px; color: #e0e6ed; margin-top: 10px;"></div>
+                    </div>
+                    <img src="repair_types.png" class="clinical-img" style="margin-top: 20px;" alt="Hernia Repair Types">
+                </div>
+
+                <div id="sdm_incisional" class="hidden">
+                    <p style="font-size: 14px; color: #444; margin-bottom: 15px; line-height: 1.5;">Incisional hernias form through previous surgical scars and represent a structural failure of the abdominal wall. Optimizing factors like BMI and smoking before surgery is critical to preventing the hernia from returning.</p>
+                    <div class="stat-box">
+                        <div style="font-size:12px; opacity:0.8; text-transform:uppercase;">CeDAR Risk Proxy</div>
+                        <div class="stat-number" id="cedar-percentage">--%</div>
+                        <div style="font-size:14px;">Published cohort data suggests this wound complication rate for similar risk factors.</div>
+                    </div>
+                    <div class="chart-container"><canvas id="cedarChart"></canvas></div>
+                    <p style="font-size: 13px; color: #666; text-align: center;">Targeting pre-habilitation (smoking cessation, weight loss) pushes current risk towards the optimized target.</p>
+                </div>
+
+                <div id="sdm_ventral" class="hidden">
+                    <h3 style="margin-top: 0; margin-bottom: 10px;">Planned vs Emergency Recovery</h3>
+                    <p style="font-size: 14px; color: #444; line-height: 1.5;">Repairing an umbilical hernia early, while smaller, allows for a simpler, tailored day-case operation. Delaying surgery until the hernia becomes large or traps tissue dramatically increases surgical complexity and significantly extends recovery.</p>
+                    <div class="chart-container" style="height: 200px;"><canvas id="ventralChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="app-step" id="step-4">
+                <h2>4. Surgical Success Planner</h2>
+                <p class="step-intro">I know that recovery isn't a one-size-fits-all process. Based on your specific procedure and daily activity levels, I have generated this timeline to provide you with realistic benchmarks for returning to work, driving, and exercise.</p>
+                
+                <h3 style="margin-top: 0;">Expected Recovery Trajectory</h3>
+                <p style="font-size: 13.5px; color: #444; line-height: 1.5; margin-bottom: 15px;">I use this graph to illustrate the typical post-operative experience for my patients. While some early discomfort is entirely normal, it usually resolves quickly as your mobility and function safely return.</p>
+                
+                <div class="chart-container" style="height: 250px; margin-bottom: 30px;">
+                    <canvas id="recoveryChart"></canvas>
+                </div>
+
+                <div class="input-grid">
+                    <div>
+                        <label>Your Job / Activity Level</label>
+                        <select id="jobInput">
+                            <option value="desk">Desk Based / Office</option>
+                            <option value="light">Light Manual (Standing/Walking)</option>
+                            <option value="heavy">Heavy Manual (Lifting/Construction)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Target Surgery Date</label>
+                        <input type="date" id="dateInput">
+                    </div>
+                </div>
+
+                <h3>Recovery Benchmarks</h3>
+                <div id="out-timeline" class="sub-panel" style="font-size: 14px; line-height: 1.8;"></div>
+
+                <h3 style="margin-top: 30px;">Understanding the Risks</h3>
+                <p style="font-size: 13.5px; color: #444; line-height: 1.5; margin-bottom: 15px;">Every operation carries some degree of risk. We take extensive precautions to keep you safe. Based on national clinical data for your specific procedure, here is what you should be aware of:</p>
+                
+                <div id="dynamic_risks_panel" style="display: flex; flex-direction: column; gap: 10px;">
+                    </div>
+
+                <div style="margin-top: 25px;">
+                    <label style="color: var(--brand-navy);">Do any of the risks described above concern you particularly?</label>
+                    <textarea id="patient_concerns" rows="2" placeholder="If so, please describe your concerns here so we can discuss them directly in your consultation..."></textarea>
+                </div>
+            </div>
+
+            <div class="app-step" id="step-5">
+                <h2>5. Priorities & Authorization</h2>
+                <p class="step-intro">Based on your clinical data, I have mapped out your expected treatment pathway below. Please review these next steps, outline your primary goals for our consultation, and complete the final authorizations.</p>
+
+                <div id="dynamic_pathway_panel" class="sub-panel" style="background: #f8fafc; border-left-color: var(--brand-cyan); margin-bottom: 25px;">
+                    </div>
+                
+                <label>Now that you have seen the data, what are your primary goals for our consultation?</label>
+                <textarea id="priority_final" rows="3" placeholder="e.g. I want to proceed with surgery before August, or I want to try watchful waiting..." required></textarea>
+
+                <div class="sub-panel" style="background: #eef5f9; border-color: var(--brand-navy); margin-top: 25px; margin-bottom: 25px;">
+                    <label style="margin-top: 0; color: var(--brand-navy);">Required Reading: Clinical Information</label>
+                    <p style="font-size: 13px; margin-bottom: 15px; color: #444;">Please click below to read the comprehensive clinical information regarding your specific condition and proposed procedure before signing. This includes independent national guidance.</p>
+                    
+                    <div id="pil_links_container" style="display: flex; flex-direction: column; gap: 10px;">
+                    </div>
+                </div>
+
+                <div class="sub-panel" style="background: var(--brand-grey); margin-bottom: 25px;">
+                    <label style="margin-top: 0;">Feedback (Optional)</label>
+                    <p style="font-size: 13px; margin-bottom: 5px;">The clinical information above helped me understand my condition.</p>
+                    <select id="survey_comprehension" style="margin-bottom: 10px;">
+                        <option value="5">Strongly Agree</option>
+                        <option value="4">Agree</option>
+                        <option value="3">Neutral</option>
+                    </select>
+                    
+                    <p style="font-size: 13px; margin-bottom: 5px;">I feel well prepared for my upcoming consultation.</p>
+                    <select id="survey_prepared" style="margin-bottom: 10px;">
+                        <option value="5">Strongly Agree</option>
+                        <option value="4">Agree</option>
+                        <option value="3">Neutral</option>
+                    </select>
+
+                    <p style="font-size: 13px; margin-bottom: 5px;">How easy was this digital form to use?</p>
+                    <select id="survey_usability">
+                        <option value="5" selected>⭐⭐⭐⭐⭐ (Very Easy)</option>
+                        <option value="4">⭐⭐⭐⭐ (Easy)</option>
+                        <option value="3">⭐⭐⭐ (Neutral)</option>
+                        <option value="2">⭐⭐ (Difficult)</option>
+                        <option value="1">⭐ (Very Difficult)</option>
+                    </select>
+                </div>
+
+                <p style="font-size: 14px; font-weight: bold; color: var(--brand-navy); margin-bottom: 10px;">Please read and confirm below:</p>
+
+                <div class="checkbox-group" style="margin-top:10px; align-items: flex-start;">
+                    <input type="checkbox" id="capacity_check" required style="margin-top: 3px;">
+                    <span style="font-size: 13px; color: #444; line-height: 1.4;">
+                        <strong>Capacity:</strong> I confirm I am completing this form for myself and have not been assisted by a third party without my knowledge.
+                    </span>
+                </div>
+                
+                <div class="checkbox-group" style="margin-top:10px; align-items: flex-start;">
+                    <input type="checkbox" id="montgomery_check" required style="margin-top: 3px;">
+                    <span style="font-size: 13px; color: #444; line-height: 1.4;">
+                        <strong>Withdrawal Right:</strong> I understand I may choose not to proceed with surgery at any time, and that completing this form does not commit me to any treatment.
+                    </span>
+                </div>
+
+                <div class="checkbox-group" style="margin-top:10px; align-items: flex-start;">
+                    <input type="checkbox" id="consent_risks" required style="margin-top: 3px;">
+                    <span style="font-size: 13px; color: #444; line-height: 1.4;">
+                        <strong>Shared Decision Making:</strong> I have not used this tool to make my final decision, but to understand the clinical evidence. I confirm the data provided is accurate, I have reviewed the patient information, and I will discuss full consent formally with Mr. Rahman in clinic.
+                    </span>
+                </div>
+
+                <div class="checkbox-group" style="margin-top:10px; margin-bottom: 20px; align-items: flex-start; padding: 10px; background: #fdfdfd; border: 1px solid #eee; border-radius: 6px;">
+                    <input type="checkbox" id="research_consent" style="margin-top: 3px;">
+                    <span style="font-size: 12.5px; color: #555; line-height: 1.4;">
+                        <strong>Academic Consent (Optional):</strong> I consent to my anonymised clinical data (with all personal identifiers removed) being used by Mr. Rahman and his affiliated clinical partners for service evaluation, academic research, and peer-reviewed publication to help improve surgical care. I understand that my decision to consent or decline is entirely optional and will not affect my clinical treatment in any way.
+                    </span>
+                </div>
+
+                <p style="font-size: 13px; color: #555; margin-top: 0; margin-bottom: 5px;"><strong>Patient Signature:</strong></p>
+                <div style="border: 2px solid var(--border-col); border-radius: 8px; background: #fff; margin-bottom: 5px;">
+                    <canvas id="signature-pad" style="width:100%; height: 150px; touch-action: none;"></canvas>
+                </div>
+                <button type="button" id="clear-sig" style="font-size:12px; background:none; border:none; color:var(--brand-cyan); cursor:pointer; padding: 10px; font-weight: bold;">Clear Signature</button>
+
+                <div id="next_steps_panel" class="next_steps_panel hidden" style="text-align:center; padding: 20px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; margin-top: 25px;">
+                    <h3 style="color: #166534; margin-top: 0;">✓ Profile Successfully Generated</h3>
+                    <p style="font-size: 14px; color: #166534; margin-bottom: 10px;">Your clinical profile is now complete and has been securely sent to Mr. Rahman's team for review prior to your consultation.</p>
+                    <ul style="font-size: 13px; color: #15803d; text-align: left; display: inline-block; margin: 10px auto; line-height: 1.6;">
+                        <li><strong>What to bring:</strong> Any previous clinic letters or scan reports.</li>
+                        <li><strong>Questions?</strong> Contact the secretariat prior to your appointment.</li>
+                    </ul>
+                    <button type="button" onclick="openPdfInNewTab()" class="btn" style="background: var(--brand-cyan); width: 100%; margin-top:20px;">View & Save My Passport</button>
+                </div>
+                
+            </div>
+        </form>
+    </div>
+
+    <div class="app-footer no-print">
+        <button type="button" class="btn btn-back hidden" id="btnBack">Back</button>
+        <button type="button" class="btn btn-next" id="btnNext">Continue</button>
+    </div>
+
+    <div id="printable-passport" style="page-break-inside: avoid;">
+        <div style="border-bottom: 3px solid #142b45; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h1 style="margin:0; font-size: 24px; color: #142b45;">Surgical Readiness Passport</h1>
+                <p style="margin:5px 0 0 0; font-weight:bold; font-size:16px;">Mr Saqib Rahman PhD FRCS</p>
+                <p style="margin:2px 0 0 0; font-size:11px; color:#555;">Consultant Biliary & Hernia Surgeon | GMC: 7049823</p>
+            </div>
+            <div style="text-align: right; font-size: 11px; color: #555;">
+                Date: <span id="pdf-date"></span><br>
+                Time Signed: <span id="pdf-timestamp"></span><br>
+                Time in App: <span id="pdf-time-spent"></span><br>
+                Wessex Nuffield Hospital
+            </div>
+        </div>
+        
+        <div style="font-size: 14px; margin-bottom: 20px; page-break-inside: avoid;">
+            <strong>Patient:</strong> <span id="pdf-name"></span> (DOB: <span id="pdf-dob"></span>) <span id="pdf-id"></span><br>
+            <strong>Procedure Category:</strong> <span id="pdf-proc"></span> (Timeframe: <span id="pdf-timeframe"></span>)<br>
+            <span id="pdf-ins-block" style="display:none;"><strong>Insurance:</strong> <span id="pdf-ins-details"></span><br></span>
+            <strong>Reason for Review:</strong> <span id="pdf-reason"></span><br>
+            <strong>Goals/Priorities:</strong> <span id="pdf-priorities"></span>
+        </div>
+
+        <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top: 15px; page-break-inside: avoid;">Clinical History & Intake</h3>
+        <div style="font-size: 13px; line-height: 1.5; margin-bottom: 15px; page-break-inside: avoid;">
+            <strong>Referral Source:</strong> <span id="pdf-referral"></span> <span id="pdf-gp-text"></span><br>
+            <strong>Prior Consultation:</strong> <span id="pdf-prior-consult"></span><br>
+            <strong>Symptom Duration:</strong> <span id="pdf-duration"></span><br>
+            <strong>Allergies:</strong> <span id="pdf-allergies"></span><br>
+            <strong>Current Medications:</strong> <span id="pdf-meds"></span><br>
+            <strong>Diabetes Status:</strong> <span id="pdf-diabetes"></span><br>
+            <strong>Other Medical History:</strong> <span id="pdf-other-mh"></span>
+        </div>
+
+        <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; page-break-inside: avoid;">Baseline PROMs & Health Status</h3>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; line-height: 1.5; page-break-inside: avoid;">
+            <div style="width: 48%;">
+                <strong>Average Pain:</strong> <span id="pdf-pain"></span> / 10<br>
+                <strong>Quality of Life:</strong> <span id="pdf-qol"></span> / 10<br>
+                <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ccc;">
+                    <em>Validated EQ-5D-3L Profile:</em><br>
+                    <span id="pdf-eq5d-profile" style="font-weight: bold; letter-spacing: 1px;"></span>
+                </div>
+            </div>
+            <div style="width: 48%; padding-left: 10px; border-left: 1px solid #eee;">
+                <strong>Mobility:</strong> <span id="pdf-eq1"></span><br>
+                <strong>Self-Care:</strong> <span id="pdf-eq2"></span><br>
+                <strong>Activities:</strong> <span id="pdf-eq3"></span><br>
+                <strong>Pain:</strong> <span id="pdf-eq4"></span><br>
+                <strong>Anxiety:</strong> <span id="pdf-eq5"></span>
+            </div>
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top: 20px;">Clinical Risk Profile</h3>
+            <p style="font-size: 13px; margin: 5px 0;"><strong>BMI:</strong> <span id="pdf-bmi"></span></p>
+            <p style="font-size: 13px; margin: 5px 0;"><strong>Estimated functional capacity:</strong> <span id="pdf-mets"></span> METs <span id="pdf-mets-eval"></span></p>
+            <p style="font-size: 13px; margin: 5px 0;"><strong>STOP-BANG Airway Risk:</strong> <span id="pdf-sb"></span> / 8</p>
+            <p style="font-size: 13px; margin: 5px 0;"><strong>Charlson Comorbidity Proxy:</strong> <span id="pdf-cci"></span></p>
+        </div>
+        
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:15px;">Pre-Op Optimisation Pillars</h3>
+            <div id="pdf-pillars" style="font-size: 13px; line-height: 1.5;"></div>
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:20px;">Expected Clinical Pathway Discussed</h3>
+            <div id="pdf-pathway-discussed" style="font-size: 12px; line-height: 1.4; margin-bottom: 15px;"></div>
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:20px;">Risks Reviewed & Acknowledged</h3>
+            <div id="pdf-risks-reviewed" style="font-size: 12px; line-height: 1.4; margin-bottom: 10px;"></div>
+            <div style="background: #fdfdfd; border: 1px solid #ea580c; border-left: 4px solid #ea580c; padding: 10px; font-size: 12px;">
+                <strong>Specific Patient Concerns Identified:</strong> <span id="pdf-concerns" style="color: #c2410c;"></span>
+            </div>
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:15px;">System Data & Authorizations</h3>
+            <div style="font-size: 12px; line-height: 1.5; color: #444; margin-bottom: 20px;">
+                <span id="pdf-feedback"></span><br>
+                <strong>Research Consent Provided:</strong> <span id="pdf-research-consent"></span>
+            </div>
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 id="pdf-chart-header" style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:20px; display:none;">Decision Support Snapshot</h3>
+            <img id="pdf-chart-snapshot" style="max-width: 80%; height: auto; margin: 10px auto; display: none; border: 1px solid #eee;">
+        </div>
+
+        <div style="page-break-inside: avoid;">
+            <h3 id="pdf-recovery-header" style="border-bottom: 1px solid #142b45; font-size: 14px; text-transform: uppercase; margin-top:20px; display:none;">Expected Recovery Trajectory</h3>
+            <img id="pdf-recovery-snapshot" style="max-width: 80%; height: auto; margin: 10px auto; display: none; border: 1px solid #eee;">
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 10px; color: #888; border-top: 1px solid #eee; padding-top: 10px; page-break-inside: avoid;">
+            Generated by Outcome Logic™ | Data-Driven Shared Decision Making <br> <span id="pdf-device-type"></span>
+        </div>
+    </div>
+</div>
+
+<script src="intake.js"></script>
+</body>
+</html>
