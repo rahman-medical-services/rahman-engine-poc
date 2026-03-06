@@ -1,5 +1,5 @@
 // --- SECURE WEBHOOK DESTINATION ---
-const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz-PLWJuRFsp-6mgGcKDFZIfept-WoEaPNhJgz43NAm2-0t4tk9w_TxVdSruo24phEzmw/exec";
+const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycby7IvNjuPdSrKao4Y9pUOm7kXriSm3Qy0bTSOcZoN5Gw4ZkBTJe8mQRiCAo5Xki8zUrsw/exec";
 // --- GLOBALS & SETUP ---
 let currentStep = 1;
 const totalSteps = 5;
@@ -803,6 +803,15 @@ OPT: ${opt.length > 0 ? opt.join(' | ') : 'Routine'}`;
 }
 
 // --- FINAL SUBMISSION & PDF EXPORT ---
+// --- PRIVACY & SECURITY UTILITIES ---
+async function scrambleID(id) {
+    if (!id || id === "NO_ID") return "NO_ID";
+    const msgBuffer = new TextEncoder().encode(id + "OutcomeLogicSalt2026");
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 8).toUpperCase();
+}
+
+// --- FINAL SUBMISSION & PDF EXPORT ---
 async function generateFinalPDF() {
     const btn = document.getElementById('btnNext');
     if(btn) { 
@@ -840,9 +849,13 @@ async function generateFinalPDF() {
     document.getElementById('pdf-timestamp').innerText = submitTime.toLocaleTimeString('en-GB');
     document.getElementById('pdf-time-spent').innerText = timeInAppString;
 
-    document.getElementById('pdf-name').innerText = document.getElementById('patient_name')?.value || 'N/A';
-    document.getElementById('pdf-dob').innerText = document.getElementById('patient_dob')?.value.split('-').reverse().join('/') || 'N/A';
-    document.getElementById('pdf-id').innerText = document.getElementById('patient_id')?.value ? `| ID: ${document.getElementById('patient_id').value}` : '';
+    // Grab raw Name and DOB for the Webhook & PDF
+    const rawName = document.getElementById('patient_name')?.value || 'UNKNOWN';
+    const rawDOB = document.getElementById('patient_dob')?.value || 'UNKNOWN';
+    const formattedDOB = rawDOB !== 'UNKNOWN' ? rawDOB.split('-').reverse().join('/') : 'UNKNOWN';
+
+    document.getElementById('pdf-name').innerText = rawName;
+    document.getElementById('pdf-dob').innerText = formattedDOB;
     
     const condEl = document.getElementById('condition');
     document.getElementById('pdf-proc').innerText = condEl ? condEl.options[condEl.selectedIndex].text : 'N/A';
@@ -889,19 +902,22 @@ async function generateFinalPDF() {
     document.getElementById('pdf-eq5').innerText = eqText[eq5-1] || 'N/A';
 
     document.getElementById('pdf-bmi').innerText = bmiVal ? bmiVal.toFixed(1) : 'N/A';
-document.getElementById('pdf-bmi').innerText = bmiVal ? bmiVal.toFixed(1) : 'N/A';
     document.getElementById('pdf-mets').innerText = mets.toFixed(1);
     
     // Dynamic METs Evaluation
-    if (mets >= 4.0) {
-        document.getElementById('pdf-mets-eval').innerText = "(Adequate)";
-        document.getElementById('pdf-mets-eval').style.color = "#166534"; // Green
-    } else {
-        document.getElementById('pdf-mets-eval').innerText = "— Anaesthetic review required";
-        document.getElementById('pdf-mets-eval').style.color = "#b91c1c"; // Red
+    const evalEl = document.getElementById('pdf-mets-eval');
+    if (evalEl) {
+        if (mets >= 4.0) {
+            evalEl.innerText = "(Adequate)";
+            evalEl.style.color = "#166534"; // Green
+        } else {
+            evalEl.innerText = "— Anaesthetic review required";
+            evalEl.style.color = "#b91c1c"; // Red
+        }
     }
     
     document.getElementById('pdf-sb').innerText = sb;
+    document.getElementById('pdf-cci').innerText = cci;
 
     document.getElementById('pdf-pillars').innerHTML = document.getElementById('out-pillars')?.innerHTML || 'None identified';
     document.getElementById('pdf-pathway-discussed').innerHTML = document.getElementById('dynamic_pathway_panel')?.innerHTML || 'Standard pathway';
@@ -916,18 +932,23 @@ document.getElementById('pdf-bmi').innerText = bmiVal ? bmiVal.toFixed(1) : 'N/A
     if(activeChart && condEl && condEl.value !== 'other') {
         document.getElementById('pdf-chart-header').style.display = 'block';
         const snap = document.getElementById('pdf-chart-snapshot');
-        snap.src = activeChart.canvas.toDataURL('image/png', 1.0); 
-        snap.style.display = 'block'; 
+        if (snap) {
+            snap.src = activeChart.canvas.toDataURL('image/png', 1.0); 
+            snap.style.display = 'block'; 
+        }
     }
     if(recoveryChart) {
         document.getElementById('pdf-recovery-header').style.display = 'block';
         const rSnap = document.getElementById('pdf-recovery-snapshot');
-        rSnap.src = recoveryChart.canvas.toDataURL('image/png', 1.0);
-        rSnap.style.display = 'block';
+        if (rSnap) {
+            rSnap.src = recoveryChart.canvas.toDataURL('image/png', 1.0);
+            rSnap.style.display = 'block';
+        }
     }
 
-    // 4. BUILD THE CAREBIT TEXT PAYLOAD
+    // 4. BUILD THE CAREBIT TEXT PAYLOAD & SECURE HASH
     const carebitPayload = generateCarebitPayload(mets, sb);
+    const secureAuditID = await scrambleID(rawName.toUpperCase() + formattedDOB);
 
     // Silently copy to clipboard
     try { await navigator.clipboard.writeText(carebitPayload); } 
@@ -962,14 +983,15 @@ document.getElementById('pdf-bmi').innerText = bmiVal ? bmiVal.toFixed(1) : 'N/A
                 // FIRE WEBHOOK
                 if (typeof WEBHOOK_URL !== 'undefined') {
                     const dataPacket = {
-                        patientName: document.getElementById('patient_name')?.value.toUpperCase() || 'UNKNOWN',
-                        patientID: document.getElementById('patient_id')?.value || "NO_ID",
+                        patientName: rawName.toUpperCase(),
+                        patientDOB: formattedDOB,
+                        auditID: secureAuditID, // Passes the safe cryptographic hash
                         condition: condEl ? condEl.value : 'N/A',
                         bmi: bmiVal ? bmiVal.toFixed(1) : "0",
                         eq5d: eq5dProfile,
                         timeInApp: timeInAppString,
                         clinicalPayload: carebitPayload,
-                        pdfData: cleanBase64 // The clean, verified string
+                        pdfData: cleanBase64 
                     };
 
                     // Send as text/plain to bypass strict browser CORS blocks on large files
@@ -980,7 +1002,7 @@ document.getElementById('pdf-bmi').innerText = bmiVal ? bmiVal.toFixed(1) : 'N/A
                     }).catch(e => console.log("Webhook skipped"));
                 }
 
-                // SHOW SUCCESS UI
+                // SHOW SUCCESS UI (And keep the page smoothly anchored at the bottom)
                 const nsPanel = document.getElementById('next_steps_panel');
                 if(nsPanel) {
                     nsPanel.classList.remove('hidden');
