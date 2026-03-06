@@ -669,7 +669,7 @@ if(btnNextObj) {
                 currentStep++; 
             }
             updateUI();
-
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
             const capCheck = document.getElementById('capacity_check');
             const montCheck = document.getElementById('montgomery_check');
